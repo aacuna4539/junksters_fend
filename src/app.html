@@ -1,0 +1,14 @@
+<template>
+  <require from="bootstrap/css/bootstrap.css"></require>
+  <require from="css/animate.css"></require>
+  <require from="css/business-casual.css"></require>
+  <require from="resources/elements/footer-nav"></require>
+  <require from="resources/elements/header-nav"></require>
+
+
+  <div class="brand">${businessName}</div>
+  <div class="address-bar">${aData.streetAdr} | ${aData.city}, ${aData.state} ${aData.zip} | ${aData.phone}</div>
+  <header-nav router.bind="router"></header-nav>
+  <router-view></router-view>
+  <footer-nav></footer-nav>
+</template>
