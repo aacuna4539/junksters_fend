@@ -79,18 +79,5 @@ export class Blog {
 
     }
 
-    olderPosts(e) {
-       /* if(this.displayedPosts.includes.(this.posts[0])) {
-            if(e.target.hasAttribute('disabled')) {
-                return this.modifyAttribute({
-                    el: e.target,
-                    attribute: "disabled",
-                    value: "false"
-                }, "setAttribute");
-            }
-        } else {
-            let idx = this.posts.indexOf(this.displayedPosts[0]);
-            this.displayedPosts = this.posts.slice(idx, idx - 4);
-        }*/
-    }
+    olderPosts(e) { }
 }
