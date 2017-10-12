@@ -48,8 +48,6 @@ export class App {
         this.router  = router;
     }
 
-    /* TODO: make this an object */
-          /*= ' 8484 E Broadway Blvd | Tucson, AZ 85710 | (520) 290-9923';*/
     aData = {
         streetAdr: '8484 E Broadway Blvd',
         city: 'Tucson',
