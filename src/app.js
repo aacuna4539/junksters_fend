@@ -19,15 +19,10 @@ export class App {
                 scrollContainer: null // optional scroll container selector, otherwise use window
             }
         );
-
-        console.log(WOW, taskQueue);
-
         this.taskQueue = taskQueue;
     }
 
-    created(v1, v2){
-        console.log(v1, v2)
-    }
+    created(v1, v2){ }
 
 
     attached() {
@@ -44,8 +39,9 @@ export class App {
         config.mapUnknownRoutes('home');
 
         config.map([
-            { route: ['home', ''], name: 'home',   moduleId: 'home',    title: 'Home',       nav: true },
-            { route: 'about',      name: 'title',  moduleId: 'about',   title: 'About',      nav: true },
+            { route: ['home', ''], name: 'home',    moduleId: 'home',    title: 'Home',       nav: true },
+            { route: 'about',      name: 'title',   moduleId: 'about',   title: 'About',      nav: true },
+            { route: 'blog',       name:  'blog',   moduleId: 'blog',    title: 'Blog',       nav: true },
             { route: 'contact',    name: 'contact', moduleId: 'contact', title: 'Contact',    nav: true }
         ]);
 

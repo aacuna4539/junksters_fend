@@ -1,12 +1,29 @@
 /**
- * Created by rigel on 2/18/17.
+ * Created by rigel on 3/9/17.
  */
+import { http } from 'resources/http';
+import { inject } from 'aurelia-framework';
+
+@inject(http)
 export class Home {
-    message = 'This is home';
+    constructor(http){
+        this.httpClient = http;
 
-    constructor() {
-        let data = $.get('localhost:8000/pages/2');
+       /* this.httpClient.fetch('pages/2', {
+            method: 'GET',
+            headers: {
+                'Accept': 'text/html',
+                'Content': 'application/html'
+            }
+        }).then((response => {
+            if(response.status !== 200) {
+                console.log(`Something went wrong. Status: ${response.status}`);
+                return
+            }
 
-        data.then((d) => console.log('data', d));
+            response.text().then( x => {
+                this.data = x;
+            } );
+        }));*/
     }
 }

@@ -1,7 +1,11 @@
+import 'fetch';
 import environment from './environment';
-
+import http from 'resources/http';
 //Configure Bluebird Promises.
 //Note: You may want to use environment-specific configuration.
+
+
+
 Promise.config({
   warnings: {
     wForgottenReturn: false

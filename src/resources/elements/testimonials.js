@@ -5,9 +5,7 @@ import { BindingEngine } from 'aurelia-binding';
 export class Testimonials {
     @bindable testimonial = this.getTestimonial(2, 0);
 
-    constructor() {
-
-    }
+    constructor() { }
 
     attached() {
         setInterval((a) => {
@@ -15,10 +13,7 @@ export class Testimonials {
         }, 12000);
     }
 
-    testimonialChanged(newValue, oldValue) {
-        console.log('newVal', newValue);
-        console.log('oldVal', oldValue);
-    }
+    testimonialChanged(newValue, oldValue) { }
 
     clients = [
         {
@@ -52,8 +47,6 @@ export class Testimonials {
         return ((arr) => arr[n])(this.clients);
     });
 
-    /* TODO: DYNAMIC RENDER */
-
     initTestimonial = () => {
         setInterval(() => {
             console.log('run');
@@ -61,6 +54,5 @@ export class Testimonials {
             return JSON.parse(JSON.stringify(this.getTestimonial(2, 0)));
         }, 1000);
     }
-
 }
 

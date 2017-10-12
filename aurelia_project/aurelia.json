@@ -88,6 +88,11 @@
         ],
         "dependencies": [
           {
+            "name": "fetch",
+            "path": "../node_modules/whatwg-fetch",
+            "main": "fetch"
+          },
+          {
             "name": "wow",
             "path": "../node_modules/wow.js",
             "main": "dist/wow",
@@ -103,7 +108,8 @@
             "resources": [
               "css/bootstrap.css"
             ]
-          }
+          },
+          "moment"
         ]
       },
       {
@@ -118,6 +124,7 @@
           "aurelia-bootstrapper",
           "aurelia-dependency-injection",
           "aurelia-event-aggregator",
+          "aurelia-fetch-client",
           "aurelia-framework",
           "aurelia-history",
           "aurelia-history-browser",

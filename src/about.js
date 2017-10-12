@@ -3,9 +3,5 @@
  */
 
 export class About {
-    constructor() {
-
-    }
-
     team = [ { name: 'Tami', jobTitle: '' }, { name: 'Jacki', jobTitle: '' }]
 }
