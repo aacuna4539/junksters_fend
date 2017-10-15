@@ -1,14 +1,13 @@
 /**
  * Created by rigel on 3/10/17.
  */
-import  {DataManager}  from 'data-manager';
-import {inject} from 'aurelia-framework';
-//import { http } from 'resources/http';
+import {DataManager}  from 'data-manager';
+import {inject}       from 'aurelia-framework';
+import {Paginate}     from 'paginate';
 
-
-@inject(DataManager)
+@inject(DataManager, Paginate)
 export class Blog {
-    constructor(dataManager) {
+    constructor(dataManager, paginate) {
         this.urls = [
             "src/img/slide-3.jpg",
             "src/img/slide-2.jpg",
@@ -18,6 +17,8 @@ export class Blog {
         this.posts = [];
         this.displayedPosts = [];
         this.dataManager = dataManager;
+        this.paginate = paginate;
+        this.pageNum = 0;
     }
 
     created(owningView, myView) {
@@ -47,6 +48,7 @@ export class Blog {
                     });
                     this.posts = this.dataManager.data.sort((a, b) => b.date - a.date);
                     this.displayedPosts = this.posts.slice(0, 4);
+                    this.displayedPosts.forEach(x => console.log( x.date))
                 });
             }));
     }
@@ -60,24 +62,19 @@ export class Blog {
 
     modifyAttribute(opts, action) {
         if (opts.el.hasAttribute(action)) return;
-        return opts.el[ action ](opts.attribute, opts.value);
+        return opts.el[action](opts.attribute, opts.value);
     }
 
-    newerPosts(e) {
-        if (this.displayedPosts.includes(this.posts[this.posts.length - 1])) {
-            if (!e.target.hasAttribute('disabled')) {
-                return this.modifyAttribute({
-                    el: e.target,
-                    attribute: "disabled",
-                    value: "true"
-                }, "setAttribute");
-            }
-        } else {
-            let idx = this.posts.indexOf(this.displayedPosts[3]);
-            this.displayedPosts = this.posts.slice(idx, idx + 4);
-        }
+    page(e, action) {
 
+        //todo: check for first or last el in arr, disable btn accordingly
+
+        let tmp = this.paginate.page({
+            array: this.posts,
+            pageNum: action === 'decrement' ? this.pageNum - 1 : this.pageNum + 1
+        });
+
+        this.pageNum = tmp.num;
+        this.displayedPosts = tmp.arr;
     }
-
-    olderPosts(e) { }
 }

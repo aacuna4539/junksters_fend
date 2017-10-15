@@ -17,7 +17,7 @@ define('about',['exports'], function (exports) {
     this.team = [{ name: 'Tami', jobTitle: '' }, { name: 'Jacki', jobTitle: '' }];
   };
 });
-define('app',['exports', 'aurelia-framework', 'wow', 'bootstrap'], function (exports, _aureliaFramework, _wow) {
+define('app',['exports', 'aurelia-framework', 'wow', 'data-manager', 'bootstrap'], function (exports, _aureliaFramework, _wow, _dataManager) {
     'use strict';
 
     Object.defineProperty(exports, "__esModule", {
@@ -41,8 +41,8 @@ define('app',['exports', 'aurelia-framework', 'wow', 'bootstrap'], function (exp
 
     var _dec, _class;
 
-    var App = exports.App = (_dec = (0, _aureliaFramework.inject)(_aureliaFramework.TaskQueue), _dec(_class = function () {
-        function App(taskQueue) {
+    var App = exports.App = (_dec = (0, _aureliaFramework.inject)(_aureliaFramework.TaskQueue, _dataManager.DataManager), _dec(_class = function () {
+        function App(taskQueue, dataManager) {
             _classCallCheck(this, App);
 
             this.aData = {
@@ -63,6 +63,7 @@ define('app',['exports', 'aurelia-framework', 'wow', 'bootstrap'], function (exp
                 callback: function callback() {},
                 scrollContainer: null });
             this.taskQueue = taskQueue;
+            this.dataManager = dataManager;
         }
 
         App.prototype.created = function created(v1, v2) {};
@@ -90,7 +91,7 @@ define('app',['exports', 'aurelia-framework', 'wow', 'bootstrap'], function (exp
         return App;
     }()) || _class);
 });
-define('blog',['exports', 'data-manager', 'aurelia-framework'], function (exports, _dataManager, _aureliaFramework) {
+define('blog',['exports', 'data-manager', 'aurelia-framework', 'paginate'], function (exports, _dataManager, _aureliaFramework, _paginate) {
     'use strict';
 
     Object.defineProperty(exports, "__esModule", {
@@ -106,8 +107,8 @@ define('blog',['exports', 'data-manager', 'aurelia-framework'], function (export
 
     var _dec, _class;
 
-    var Blog = exports.Blog = (_dec = (0, _aureliaFramework.inject)(_dataManager.DataManager), _dec(_class = function () {
-        function Blog(dataManager) {
+    var Blog = exports.Blog = (_dec = (0, _aureliaFramework.inject)(_dataManager.DataManager, _paginate.Paginate), _dec(_class = function () {
+        function Blog(dataManager, paginate) {
             _classCallCheck(this, Blog);
 
             this.urls = ["src/img/slide-3.jpg", "src/img/slide-2.jpg", "src/img/slide-1.jpg"];
@@ -115,6 +116,8 @@ define('blog',['exports', 'data-manager', 'aurelia-framework'], function (export
             this.posts = [];
             this.displayedPosts = [];
             this.dataManager = dataManager;
+            this.paginate = paginate;
+            this.pageNum = 0;
         }
 
         Blog.prototype.created = function created(owningView, myView) {};
@@ -146,6 +149,9 @@ define('blog',['exports', 'data-manager', 'aurelia-framework'], function (export
                         return b.date - a.date;
                     });
                     _this.displayedPosts = _this.posts.slice(0, 4);
+                    _this.displayedPosts.forEach(function (x) {
+                        return console.log(x.date);
+                    });
                 });
             });
         };
@@ -159,22 +165,16 @@ define('blog',['exports', 'data-manager', 'aurelia-framework'], function (export
             return opts.el[action](opts.attribute, opts.value);
         };
 
-        Blog.prototype.newerPosts = function newerPosts(e) {
-            if (this.displayedPosts.includes(this.posts[this.posts.length - 1])) {
-                if (!e.target.hasAttribute('disabled')) {
-                    return this.modifyAttribute({
-                        el: e.target,
-                        attribute: "disabled",
-                        value: "true"
-                    }, "setAttribute");
-                }
-            } else {
-                var idx = this.posts.indexOf(this.displayedPosts[3]);
-                this.displayedPosts = this.posts.slice(idx, idx + 4);
-            }
-        };
+        Blog.prototype.page = function page(e, action) {
 
-        Blog.prototype.olderPosts = function olderPosts(e) {};
+            var tmp = this.paginate.page({
+                array: this.posts,
+                pageNum: action === 'decrement' ? this.pageNum - 1 : this.pageNum + 1
+            });
+
+            this.pageNum = tmp.num;
+            this.displayedPosts = tmp.arr;
+        };
 
         return Blog;
     }()) || _class);
@@ -208,7 +208,6 @@ define('contact',['exports', 'aurelia-validation', 'aurelia-framework'], functio
         };
 
         Contact.prototype.send = function send() {
-
             this.controller.validate().then(function (result) {
                 if (result.valid) {
                     console.log("sending");
@@ -330,6 +329,40 @@ define('main',['exports', './environment', 'resources/http', 'fetch'], function 
       return aurelia.setRoot();
     });
   }
+});
+define('paginate',["exports"], function (exports) {
+    "use strict";
+
+    Object.defineProperty(exports, "__esModule", {
+        value: true
+    });
+
+    function _classCallCheck(instance, Constructor) {
+        if (!(instance instanceof Constructor)) {
+            throw new TypeError("Cannot call a class as a function");
+        }
+    }
+
+    var Paginate = exports.Paginate = function () {
+        function Paginate() {
+            _classCallCheck(this, Paginate);
+        }
+
+        Paginate.prototype.paginate = function paginate(pageNumber, array) {
+            var pageSize = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 4;
+
+            return array.slice(pageNumber * pageSize, (pageNumber + 1) * pageSize);
+        };
+
+        Paginate.prototype.page = function page(opts) {
+            return {
+                arr: this.paginate(opts.pageNum, opts.array),
+                num: opts.pageNum
+            };
+        };
+
+        return Paginate;
+    }();
 });
 define('resources/bootstap-form-validation-renderer',['exports', 'aurelia-framework', 'aurelia-validation'], function (exports, _aureliaFramework, _aureliaValidation) {
     'use strict';
@@ -2308,9 +2341,9 @@ define('aurelia-validation/implementation/validation-rules',["require", "exports
 define('text!about.html', ['module'], function(module) { module.exports = "<template>\n    <div class=\"container wow fadeIn\">\n        <div class=\"row\">\n            <div class=\"box\">\n                <div class=\"col-lg-12\">\n                    <hr>\n                    <h2 class=\"intro-text text-center\">About\n                        <strong>${businessName}</strong>\n                    </h2>\n                    <hr>\n                </div>\n                <div class=\"col-md-6\">\n                    <img class=\"img-responsive img-border-left\" src=\"src/img/about-main.jpg\" alt=\"\">\n                </div>\n                <div class=\"col-md-6\">\n                    <p>This is a great place to introduce your company or project and describe what you do.</p>\n                    <p>Lid est laborum dolo rumes fugats untras. Etharums ser quidem rerum facilis dolores nemis omnis fugats vitaes nemo minima rerums unsers sadips amets.</p>\n                    <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.</p>\n                </div>\n                <div class=\"clearfix\"></div>\n            </div>\n        </div>\n\n        <div class=\"row\">\n            <div class=\"box\">\n                <div class=\"team-ctnr\">\n                    <div class=\"col-lg-12\">\n                        <hr>\n                        <h2 class=\"intro-text text-center\">Our\n                            <strong>Team</strong>\n                        </h2>\n                        <hr>\n                    </div>\n                    <div class=\"col-sm-4 text-center team wow fadeInUp\" repeat.for=\"person of team\">\n                        <img class=\"img-responsive\" src=\"http://placehold.it/750x450\" alt=\"\">\n                        <h3>${person.name}\n                            <small>${person.jobTitle}</small>\n                        </h3>\n                    </div>\n                </div>\n                <div class=\"clearfix\"></div>\n            </div>\n        </div>\n\n    </div>\n    <!-- /.container -->\n</template>"; });
 define('text!css/animate.css', ['module'], function(module) { module.exports = ".animated {\n  opacity: 0;\n\n  -webkit-animation-duration: 1s;\n  -moz-animation-duration: 1s;\n  -o-animation-duration: 1s;\n  animation-duration: 1s;\n\n  -webkit-animation-fill-mode: both;\n  -moz-animation-fill-mode: both;\n  -o-animation-fill-mode: both;\n  animation-fill-mode: both;\n\n}\n\n.animated.hinge {\n  -webkit-animation-duration: 5s;\n  -moz-animation-duration: 5s;\n  -o-animation-duration: 5s;\n  animation-duration: 5s;\n}\n\n/*===================================================================================*/\n/*  pulse                                                                            */\n/*===================================================================================*/\n\n@-webkit-keyframes pulse {\n  0%   {-webkit-transform: scale(1);}\n  50%  {-webkit-transform: scale(1.1);}\n  100% {-webkit-transform: scale(1);}\n}\n@-moz-keyframes pulse {\n  0%   {-moz-transform: scale(1);}\n  50%  {-moz-transform: scale(1.1);}\n  100% {-moz-transform: scale(1);}\n}\n@-o-keyframes pulse {\n  0%   {-o-transform: scale(1);}\n  50%  {-o-transform: scale(1.1);}\n  100% {-o-transform: scale(1);}\n}\n@keyframes pulse {\n  0%   { transform: scale(1);}\n  50%  { transform: scale(1.1);}\n  100% { transform: scale(1);}\n}\n\n.animated.pulse {\n  opacity: 1;\n\n  -webkit-animation-name: pulse;\n  -moz-animation-name: pulse;\n  -o-animation-name: pulse;\n  animation-name: pulse;\n}\n\n\n\n/*===================================================================================*/\n/*  flipInX                                                                          */\n/*===================================================================================*/\n\n@-webkit-keyframes flipInX {\n  0% {\n    -webkit-transform: perspective(400px) rotateX(90deg);\n    opacity: 0;\n  }\n\n  40% {\n    -webkit-transform: perspective(400px) rotateX(-10deg);\n  }\n\n  70% {\n    -webkit-transform: perspective(400px) rotateX(10deg);\n  }\n\n  100% {\n    -webkit-transform: perspective(400px) rotateX(0deg);\n    opacity: 1;\n  }\n}\n@-moz-keyframes flipInX {\n  0% {\n    -moz-transform: perspective(400px) rotateX(90deg);\n    opacity: 0;\n  }\n\n  40% {\n    -moz-transform: perspective(400px) rotateX(-10deg);\n  }\n\n  70% {\n    -moz-transform: perspective(400px) rotateX(10deg);\n  }\n\n  100% {\n    -moz-transform: perspective(400px) rotateX(0deg);\n    opacity: 1;\n  }\n}\n@-o-keyframes flipInX {\n  0% {\n    -o-transform: perspective(400px) rotateX(90deg);\n    opacity: 0;\n  }\n\n  40% {\n    -o-transform: perspective(400px) rotateX(-10deg);\n  }\n\n  70% {\n    -o-transform: perspective(400px) rotateX(10deg);\n  }\n\n  100% {\n    -o-transform: perspective(400px) rotateX(0deg);\n    opacity: 1;\n  }\n}\n@keyframes flipInX {\n  0% {\n    transform: perspective(400px) rotateX(90deg);\n    opacity: 0;\n  }\n\n  40% {\n    transform: perspective(400px) rotateX(-10deg);\n  }\n\n  70% {\n    transform: perspective(400px) rotateX(10deg);\n  }\n\n  100% {\n    transform: perspective(400px) rotateX(0deg);\n    opacity: 1;\n  }\n}\n\n.animated.flipInX {\n  opacity: 1;\n\n  -webkit-backface-visibility: visible !important;\n  -moz-backface-visibility: visible !important;\n  -o-backface-visibility: visible !important;\n  backface-visibility: visible !important;\n\n  -webkit-animation-name: flipInX;\n  -moz-animation-name: flipInX;\n  -o-animation-name: flipInX;\n  animation-name: flipInX;\n}\n\n\n\n/*===================================================================================*/\n/*  fadeIn                                                                           */\n/*===================================================================================*/\n\n@-webkit-keyframes fadeIn {\n  0% {opacity: 0;}\n  100% {opacity: 1;}\n}\n\n@-moz-keyframes fadeIn {\n  0% {opacity: 0;}\n  100% {opacity: 1;}\n}\n\n@-o-keyframes fadeIn {\n  0% {opacity: 0;}\n  100% {opacity: 1;}\n}\n\n@keyframes fadeIn {\n  0% {opacity: 0;}\n  100% {opacity: 1;}\n}\n\n.animated.fadeIn {\n  opacity: 1;\n\n  -webkit-animation-name: fadeIn;\n  -moz-animation-name: fadeIn;\n  -o-animation-name: fadeIn;\n  animation-name: fadeIn;\n}\n\n\n\n/*===================================================================================*/\n/*  fadeInUp                                                                         */\n/*===================================================================================*/\n\n@-webkit-keyframes fadeInUp {\n  0% {\n    opacity: 0;\n    -webkit-transform: translateY(20px);\n  }\n\n  100% {\n    opacity: 1;\n    -webkit-transform: translateY(0);\n  }\n}\n\n@-moz-keyframes fadeInUp {\n  0% {\n    opacity: 0;\n    -moz-transform: translateY(20px);\n  }\n\n  100% {\n    opacity: 1;\n    -moz-transform: translateY(0);\n  }\n}\n\n@-o-keyframes fadeInUp {\n  0% {\n    opacity: 0;\n    -o-transform: translateY(20px);\n  }\n\n  100% {\n    opacity: 1;\n    -o-transform: translateY(0);\n  }\n}\n\n@keyframes fadeInUp {\n  0% {\n    opacity: 0;\n    transform: translateY(20px);\n  }\n\n  100% {\n    opacity: 1;\n    transform: translateY(0);\n  }\n}\n\n.animated.fadeInUp {\n  opacity: 1;\n\n  -webkit-animation-name: fadeInUp;\n  -moz-animation-name: fadeInUp;\n  -o-animation-name: fadeInUp;\n  animation-name: fadeInUp;\n}\n\n\n\n/*===================================================================================*/\n/* fadeInDown                                                                        */\n/*===================================================================================*/\n\n@-webkit-keyframes fadeInDown {\n  0% {\n    opacity: 0;\n    -webkit-transform: translateY(-20px);\n  }\n\n  100% {\n    opacity: 1;\n    -webkit-transform: translateY(0);\n  }\n}\n\n@-moz-keyframes fadeInDown {\n  0% {\n    opacity: 0;\n    -moz-transform: translateY(-20px);\n  }\n\n  100% {\n    opacity: 1;\n    -moz-transform: translateY(0);\n  }\n}\n\n@-o-keyframes fadeInDown {\n  0% {\n    opacity: 0;\n    -o-transform: translateY(-20px);\n  }\n\n  100% {\n    opacity: 1;\n    -o-transform: translateY(0);\n  }\n}\n\n@keyframes fadeInDown {\n  0% {\n    opacity: 0;\n    transform: translateY(-20px);\n  }\n\n  100% {\n    opacity: 1;\n    transform: translateY(0);\n  }\n}\n\n.animated.fadeInDown {\n  opacity: 1;\n\n  -webkit-animation-name: fadeInDown;\n  -moz-animation-name: fadeInDown;\n  -o-animation-name: fadeInDown;\n  animation-name: fadeInDown;\n}\n\n\n\n/*===================================================================================*/\n/*  fadeInLeft                                                                       */\n/*===================================================================================*/\n\n@-webkit-keyframes fadeInLeft {\n  0% {\n    opacity: 0;\n    -webkit-transform: translateX(-100px);\n  }\n\n  100% {\n    opacity: 1;\n    -webkit-transform: translateX(0);\n  }\n}\n\n@-moz-keyframes fadeInLeft {\n  0% {\n    opacity: 0;\n    -moz-transform: translateX(-100px);\n  }\n\n  100% {\n    opacity: 1;\n    -moz-transform: translateX(0);\n  }\n}\n\n@-o-keyframes fadeInLeft {\n  0% {\n    opacity: 0;\n    -o-transform: translateX(-100px);\n  }\n\n  100% {\n    opacity: 1;\n    -o-transform: translateX(0);\n  }\n}\n\n@keyframes fadeInLeft {\n  0% {\n    opacity: 0;\n    transform: translateX(-100px);\n  }\n\n  100% {\n    opacity: 1;\n    transform: translateX(0);\n  }\n}\n\n.animated.fadeInLeft {\n  opacity: 1;\n\n  -webkit-animation-name: fadeInLeft;\n  -moz-animation-name: fadeInLeft;\n  -o-animation-name: fadeInLeft;\n  animation-name: fadeInLeft;\n}\n\n\n\n/*===================================================================================*/\n/*  fadeInRight                                                                      */\n/*===================================================================================*/\n\n@-webkit-keyframes fadeInRight {\n  0% {\n    opacity: 0;\n    -webkit-transform: translateX(100px);\n  }\n\n  100% {\n    opacity: 1;\n    -webkit-transform: translateX(0);\n  }\n}\n\n@-moz-keyframes fadeInRight {\n  0% {\n    opacity: 0;\n    -moz-transform: translateX(100px);\n  }\n\n  100% {\n    opacity: 1;\n    -moz-transform: translateX(0);\n  }\n}\n\n@-o-keyframes fadeInRight {\n  0% {\n    opacity: 0;\n    -o-transform: translateX(100px);\n  }\n\n  100% {\n    opacity: 1;\n    -o-transform: translateX(0);\n  }\n}\n\n@keyframes fadeInRight {\n  0% {\n    opacity: 0;\n    transform: translateX(100px);\n  }\n\n  100% {\n    opacity: 1;\n    transform: translateX(0);\n  }\n}\n\n.animated.fadeInRight {\n  opacity: 1;\n\n  -webkit-animation-name: fadeInRight;\n  -moz-animation-name: fadeInRight;\n  -o-animation-name: fadeInRight;\n  animation-name: fadeInRight;\n}\n\n\n\n/*===================================================================================*/\n/*  fadeInUpBig                                                                      */\n/*===================================================================================*/\n\n@-webkit-keyframes fadeInUpBig {\n  0% {\n    opacity: 0;\n    -webkit-transform: translateY(2000px);\n  }\n\n  100% {\n    opacity: 1;\n    -webkit-transform: translateY(0);\n  }\n}\n\n@-moz-keyframes fadeInUpBig {\n  0% {\n    opacity: 0;\n    -moz-transform: translateY(2000px);\n  }\n\n  100% {\n    opacity: 1;\n    -moz-transform: translateY(0);\n  }\n}\n\n@-o-keyframes fadeInUpBig {\n  0% {\n    opacity: 0;\n    -o-transform: translateY(2000px);\n  }\n\n  100% {\n    opacity: 1;\n    -o-transform: translateY(0);\n  }\n}\n\n@keyframes fadeInUpBig {\n  0% {\n    opacity: 0;\n    transform: translateY(2000px);\n  }\n\n  100% {\n    opacity: 1;\n    transform: translateY(0);\n  }\n}\n\n.animated.fadeInUpBig {\n  opacity: 1;\n\n  -webkit-animation-name: fadeInUpBig;\n  -moz-animation-name: fadeInUpBig;\n  -o-animation-name: fadeInUpBig;\n  animation-name: fadeInUpBig;\n}\n\n\n\n/*===================================================================================*/\n/*  fadeInDownBig                                                                    */\n/*===================================================================================*/\n\n@-webkit-keyframes fadeInDownBig {\n  0% {\n    opacity: 0;\n    -webkit-transform: translateY(-2000px);\n  }\n\n  100% {\n    opacity: 1;\n    -webkit-transform: translateY(0);\n  }\n}\n\n@-moz-keyframes fadeInDownBig {\n  0% {\n    opacity: 0;\n    -moz-transform: translateY(-2000px);\n  }\n\n  100% {\n    opacity: 1;\n    -moz-transform: translateY(0);\n  }\n}\n\n@-o-keyframes fadeInDownBig {\n  0% {\n    opacity: 0;\n    -o-transform: translateY(-2000px);\n  }\n\n  100% {\n    opacity: 1;\n    -o-transform: translateY(0);\n  }\n}\n\n@keyframes fadeInDownBig {\n  0% {\n    opacity: 0;\n    transform: translateY(-2000px);\n  }\n\n  100% {\n    opacity: 1;\n    transform: translateY(0);\n  }\n}\n\n.animated.fadeInDownBig {\n  opacity: 1;\n\n  -webkit-animation-name: fadeInDownBig;\n  -moz-animation-name: fadeInDownBig;\n  -o-animation-name: fadeInDownBig;\n  animation-name: fadeInDownBig;\n}\n\n\n\n/*===================================================================================*/\n/*  fadeInLeftBig                                                                    */\n/*===================================================================================*/\n\n@-webkit-keyframes fadeInLeftBig {\n  0% {\n    opacity: 0;\n    -webkit-transform: translateX(-2000px);\n  }\n\n  100% {\n    opacity: 1;\n    -webkit-transform: translateX(0);\n  }\n}\n@-moz-keyframes fadeInLeftBig {\n  0% {\n    opacity: 0;\n    -moz-transform: translateX(-2000px);\n  }\n\n  100% {\n    opacity: 1;\n    -moz-transform: translateX(0);\n  }\n}\n@-o-keyframes fadeInLeftBig {\n  0% {\n    opacity: 0;\n    -o-transform: translateX(-2000px);\n  }\n\n  100% {\n    opacity: 1;\n    -o-transform: translateX(0);\n  }\n}\n@keyframes fadeInLeftBig {\n  0% {\n    opacity: 0;\n    transform: translateX(-2000px);\n  }\n\n  100% {\n    opacity: 1;\n    transform: translateX(0);\n  }\n}\n\n.animated.fadeInLeftBig {\n  opacity: 1;\n\n  -webkit-animation-name: fadeInLeftBig;\n  -moz-animation-name: fadeInLeftBig;\n  -o-animation-name: fadeInLeftBig;\n  animation-name: fadeInLeftBig;\n}\n\n\n\n/*===================================================================================*/\n/*  fadeInRightBig                                                                   */\n/*===================================================================================*/\n\n@-webkit-keyframes fadeInRightBig {\n  0% {\n    opacity: 0;\n    -webkit-transform: translateX(2000px);\n  }\n\n  100% {\n    opacity: 1;\n    -webkit-transform: translateX(0);\n  }\n}\n\n@-moz-keyframes fadeInRightBig {\n  0% {\n    opacity: 0;\n    -moz-transform: translateX(2000px);\n  }\n\n  100% {\n    opacity: 1;\n    -moz-transform: translateX(0);\n  }\n}\n\n@-o-keyframes fadeInRightBig {\n  0% {\n    opacity: 0;\n    -o-transform: translateX(2000px);\n  }\n\n  100% {\n    opacity: 1;\n    -o-transform: translateX(0);\n  }\n}\n\n@keyframes fadeInRightBig {\n  0% {\n    opacity: 0;\n    transform: translateX(2000px);\n  }\n\n  100% {\n    opacity: 1;\n    transform: translateX(0);\n  }\n}\n\n.animated.fadeInRightBig {\n  opacity: 1;\n\n  -webkit-animation-name: fadeInRightBig;\n  -moz-animation-name: fadeInRightBig;\n  -o-animation-name: fadeInRightBig;\n  animation-name: fadeInRightBig;\n}\n\n\n\n/*===================================================================================*/\n/*  bounceIn                                                                         */\n/*===================================================================================*/\n\n@-webkit-keyframes bounceIn {\n  0% {\n    opacity: 0;\n    -webkit-transform: scale(.3);\n  }\n\n  50% {\n    opacity: 1;\n    -webkit-transform: scale(1.05);\n  }\n\n  70% {\n    -webkit-transform: scale(.9);\n  }\n\n  100% {\n    -webkit-transform: scale(1);\n  }\n}\n\n@-moz-keyframes bounceIn {\n  0% {\n    opacity: 0;\n    -moz-transform: scale(.3);\n  }\n\n  50% {\n    opacity: 1;\n    -moz-transform: scale(1.05);\n  }\n\n  70% {\n    -moz-transform: scale(.9);\n  }\n\n  100% {\n    -moz-transform: scale(1);\n  }\n}\n\n@-o-keyframes bounceIn {\n  0% {\n    opacity: 0;\n    -o-transform: scale(.3);\n  }\n\n  50% {\n    opacity: 1;\n    -o-transform: scale(1.05);\n  }\n\n  70% {\n    -o-transform: scale(.9);\n  }\n\n  100% {\n    -o-transform: scale(1);\n  }\n}\n\n@keyframes bounceIn {\n  0% {\n    opacity: 0;\n    transform: scale(.3);\n  }\n\n  50% {\n    opacity: 1;\n    transform: scale(1.05);\n  }\n\n  70% {\n    transform: scale(.9);\n  }\n\n  100% {\n    transform: scale(1);\n  }\n}\n\n.animated.bounceIn {\n  opacity: 1;\n\n  -webkit-animation-name: bounceIn;\n  -moz-animation-name: bounceIn;\n  -o-animation-name: bounceIn;\n  animation-name: bounceIn;\n}\n\n\n\n/*===================================================================================*/\n/*  bounceInUp                                                                       */\n/*===================================================================================*/\n\n@-webkit-keyframes bounceInUp {\n  0% {\n    opacity: 0;\n    -webkit-transform: translateY(2000px);\n  }\n\n  60% {\n    opacity: 1;\n    -webkit-transform: translateY(-30px);\n  }\n\n  80% {\n    -webkit-transform: translateY(10px);\n  }\n\n  100% {\n    -webkit-transform: translateY(0);\n  }\n}\n@-moz-keyframes bounceInUp {\n  0% {\n    opacity: 0;\n    -moz-transform: translateY(2000px);\n  }\n\n  60% {\n    opacity: 1;\n    -moz-transform: translateY(-30px);\n  }\n\n  80% {\n    -moz-transform: translateY(10px);\n  }\n\n  100% {\n    -moz-transform: translateY(0);\n  }\n}\n\n@-o-keyframes bounceInUp {\n  0% {\n    opacity: 0;\n    -o-transform: translateY(2000px);\n  }\n\n  60% {\n    opacity: 1;\n    -o-transform: translateY(-30px);\n  }\n\n  80% {\n    -o-transform: translateY(10px);\n  }\n\n  100% {\n    -o-transform: translateY(0);\n  }\n}\n\n@-ms-keyframes bounceInUp {\n  0% {\n    opacity: 0;\n    -ms-transform: translateY(2000px);\n  }\n\n  60% {\n    opacity: 1;\n    -ms-transform: translateY(-30px);\n  }\n\n  80% {\n    -ms-transform: translateY(10px);\n  }\n\n  100% {\n    -ms-transform: translateY(0);\n  }\n}\n\n@keyframes bounceInUp {\n  0% {\n    opacity: 0;\n    transform: translateY(2000px);\n  }\n\n  60% {\n    opacity: 1;\n    transform: translateY(-30px);\n  }\n\n  80% {\n    transform: translateY(10px);\n  }\n\n  100% {\n    transform: translateY(0);\n  }\n}\n\n.animated.bounceInUp {\n  opacity: 1;\n\n  -webkit-animation-name: bounceInUp;\n  -moz-animation-name: bounceInUp;\n  -o-animation-name: bounceInUp;\n  animation-name: bounceInUp;\n}\n\n\n\n/*===================================================================================*/\n/*  bounceInDown                                                                     */\n/*===================================================================================*/\n\n@-webkit-keyframes bounceInDown {\n  0% {\n    opacity: 0;\n    -webkit-transform: translateY(-2000px);\n  }\n\n  60% {\n    opacity: 1;\n    -webkit-transform: translateY(30px);\n  }\n\n  80% {\n    -webkit-transform: translateY(-10px);\n  }\n\n  100% {\n    -webkit-transform: translateY(0);\n  }\n}\n\n@-moz-keyframes bounceInDown {\n  0% {\n    opacity: 0;\n    -moz-transform: translateY(-2000px);\n  }\n\n  60% {\n    opacity: 1;\n    -moz-transform: translateY(30px);\n  }\n\n  80% {\n    -moz-transform: translateY(-10px);\n  }\n\n  100% {\n    -moz-transform: translateY(0);\n  }\n}\n\n@-o-keyframes bounceInDown {\n  0% {\n    opacity: 0;\n    -o-transform: translateY(-2000px);\n  }\n\n  60% {\n    opacity: 1;\n    -o-transform: translateY(30px);\n  }\n\n  80% {\n    -o-transform: translateY(-10px);\n  }\n\n  100% {\n    -o-transform: translateY(0);\n  }\n}\n\n@keyframes bounceInDown {\n  0% {\n    opacity: 0;\n    transform: translateY(-2000px);\n  }\n\n  60% {\n    opacity: 1;\n    transform: translateY(30px);\n  }\n\n  80% {\n    transform: translateY(-10px);\n  }\n\n  100% {\n    transform: translateY(0);\n  }\n}\n\n.animated.bounceInDown {\n  opacity: 1;\n\n  -webkit-animation-name: bounceInDown;\n  -moz-animation-name: bounceInDown;\n  -o-animation-name: bounceInDown;\n  animation-name: bounceInDown;\n}\n\n\n\n/*===================================================================================*/\n/*  bounceInLeft                                                                     */\n/*===================================================================================*/\n\n@-webkit-keyframes bounceInLeft {\n  0% {\n    opacity: 0;\n    -webkit-transform: translateX(-2000px);\n  }\n\n  60% {\n    opacity: 1;\n    -webkit-transform: translateX(30px);\n  }\n\n  80% {\n    -webkit-transform: translateX(-10px);\n  }\n\n  100% {\n    -webkit-transform: translateX(0);\n  }\n}\n\n@-moz-keyframes bounceInLeft {\n  0% {\n    opacity: 0;\n    -moz-transform: translateX(-2000px);\n  }\n\n  60% {\n    opacity: 1;\n    -moz-transform: translateX(30px);\n  }\n\n  80% {\n    -moz-transform: translateX(-10px);\n  }\n\n  100% {\n    -moz-transform: translateX(0);\n  }\n}\n\n@-o-keyframes bounceInLeft {\n  0% {\n    opacity: 0;\n    -o-transform: translateX(-2000px);\n  }\n\n  60% {\n    opacity: 1;\n    -o-transform: translateX(30px);\n  }\n\n  80% {\n    -o-transform: translateX(-10px);\n  }\n\n  100% {\n    -o-transform: translateX(0);\n  }\n}\n\n@keyframes bounceInLeft {\n  0% {\n    opacity: 0;\n    transform: translateX(-2000px);\n  }\n\n  60% {\n    opacity: 1;\n    transform: translateX(30px);\n  }\n\n  80% {\n    transform: translateX(-10px);\n  }\n\n  100% {\n    transform: translateX(0);\n  }\n}\n\n.animated.bounceInLeft {\n  opacity: 1;\n\n  -webkit-animation-name: bounceInLeft;\n  -moz-animation-name: bounceInLeft;\n  -o-animation-name: bounceInLeft;\n  animation-name: bounceInLeft;\n}\n\n\n\n/*===================================================================================*/\n/*  bounceInRight                                                                    */\n/*===================================================================================*/\n\n@-webkit-keyframes bounceInRight {\n  0% {\n    opacity: 0;\n    -webkit-transform: translateX(2000px);\n  }\n\n  60% {\n    opacity: 1;\n    -webkit-transform: translateX(-30px);\n  }\n\n  80% {\n    -webkit-transform: translateX(10px);\n  }\n\n  100% {\n    -webkit-transform: translateX(0);\n  }\n}\n\n@-moz-keyframes bounceInRight {\n  0% {\n    opacity: 0;\n    -moz-transform: translateX(2000px);\n  }\n\n  60% {\n    opacity: 1;\n    -moz-transform: translateX(-30px);\n  }\n\n  80% {\n    -moz-transform: translateX(10px);\n  }\n\n  100% {\n    -moz-transform: translateX(0);\n  }\n}\n\n@-o-keyframes bounceInRight {\n  0% {\n    opacity: 0;\n    -o-transform: translateX(2000px);\n  }\n\n  60% {\n    opacity: 1;\n    -o-transform: translateX(-30px);\n  }\n\n  80% {\n    -o-transform: translateX(10px);\n  }\n\n  100% {\n    -o-transform: translateX(0);\n  }\n}\n\n@keyframes bounceInRight {\n  0% {\n    opacity: 0;\n    transform: translateX(2000px);\n  }\n\n  60% {\n    opacity: 1;\n    transform: translateX(-30px);\n  }\n\n  80% {\n    transform: translateX(10px);\n  }\n\n  100% {\n    transform: translateX(0);\n  }\n}\n\n.animated.bounceInRight {\n  opacity: 1;\n\n  -webkit-animation-name: bounceInRight;\n  -moz-animation-name: bounceInRight;\n  -o-animation-name: bounceInRight;\n  animation-name: bounceInRight;\n}\n\n\n\n/*===================================================================================*/\n/* rotateInUpLeft                                                                    */\n/*===================================================================================*/\n\n@-webkit-keyframes rotateInUpLeft {\n  0% {\n    -webkit-transform-origin: left bottom;\n    -webkit-transform: rotate(90deg);\n    opacity: 0;\n  }\n\n  100% {\n    -webkit-transform-origin: left bottom;\n    -webkit-transform: rotate(0);\n    opacity: 1;\n  }\n}\n\n@-moz-keyframes rotateInUpLeft {\n  0% {\n    -moz-transform-origin: left bottom;\n    -moz-transform: rotate(90deg);\n    opacity: 0;\n  }\n\n  100% {\n    -moz-transform-origin: left bottom;\n    -moz-transform: rotate(0);\n    opacity: 1;\n  }\n}\n\n@-o-keyframes rotateInUpLeft {\n  0% {\n    -o-transform-origin: left bottom;\n    -o-transform: rotate(90deg);\n    opacity: 0;\n  }\n\n  100% {\n    -o-transform-origin: left bottom;\n    -o-transform: rotate(0);\n    opacity: 1;\n  }\n}\n\n@keyframes rotateInUpLeft {\n  0% {\n    transform-origin: left bottom;\n    transform: rotate(90deg);\n    opacity: 0;\n  }\n\n  100% {\n    transform-origin: left bottom;\n    transform: rotate(0);\n    opacity: 1;\n  }\n}\n\n.animated.rotateInUpLeft {\n  opacity: 1;\n\n  -webkit-animation-name: rotateInUpLeft;\n  -moz-animation-name: rotateInUpLeft;\n  -o-animation-name: rotateInUpLeft;\n  animation-name: rotateInUpLeft;\n}\n\n\n\n/*===================================================================================*/\n/*  rotateInDownLeft                                                                  */\n/*===================================================================================*/\n\n@-webkit-keyframes rotateInDownLeft {\n  0% {\n    -webkit-transform-origin: left bottom;\n    -webkit-transform: rotate(-90deg);\n    opacity: 0;\n  }\n\n  100% {\n    -webkit-transform-origin: left bottom;\n    -webkit-transform: rotate(0);\n    opacity: 1;\n  }\n}\n\n@-moz-keyframes rotateInDownLeft {\n  0% {\n    -moz-transform-origin: left bottom;\n    -moz-transform: rotate(-90deg);\n    opacity: 0;\n  }\n\n  100% {\n    -moz-transform-origin: left bottom;\n    -moz-transform: rotate(0);\n    opacity: 1;\n  }\n}\n\n@-o-keyframes rotateInDownLeft {\n  0% {\n    -o-transform-origin: left bottom;\n    -o-transform: rotate(-90deg);\n    opacity: 0;\n  }\n\n  100% {\n    -o-transform-origin: left bottom;\n    -o-transform: rotate(0);\n    opacity: 1;\n  }\n}\n\n@keyframes rotateInDownLeft {\n  0% {\n    transform-origin: left bottom;\n    transform: rotate(-90deg);\n    opacity: 0;\n  }\n\n  100% {\n    transform-origin: left bottom;\n    transform: rotate(0);\n    opacity: 1;\n  }\n}\n\n.animated.rotateInDownLeft {\n  opacity: 1;\n\n  -webkit-animation-name: rotateInDownLeft;\n  -moz-animation-name: rotateInDownLeft;\n  -o-animation-name: rotateInDownLeft;\n  animation-name: rotateInDownLeft;\n}\n\n\n\n/*===================================================================================*/\n/*  rotateInUpRight                                                                  */\n/*===================================================================================*/\n\n@-webkit-keyframes rotateInUpRight {\n  0% {\n    -webkit-transform-origin: right bottom;\n    -webkit-transform: rotate(-90deg);\n    opacity: 0;\n  }\n\n  100% {\n    -webkit-transform-origin: right bottom;\n    -webkit-transform: rotate(0);\n    opacity: 1;\n  }\n}\n\n@-moz-keyframes rotateInUpRight {\n  0% {\n    -moz-transform-origin: right bottom;\n    -moz-transform: rotate(-90deg);\n    opacity: 0;\n  }\n\n  100% {\n    -moz-transform-origin: right bottom;\n    -moz-transform: rotate(0);\n    opacity: 1;\n  }\n}\n\n@-o-keyframes rotateInUpRight {\n  0% {\n    -o-transform-origin: right bottom;\n    -o-transform: rotate(-90deg);\n    opacity: 0;\n  }\n\n  100% {\n    -o-transform-origin: right bottom;\n    -o-transform: rotate(0);\n    opacity: 1;\n  }\n}\n\n@keyframes rotateInUpRight {\n  0% {\n    transform-origin: right bottom;\n    transform: rotate(-90deg);\n    opacity: 0;\n  }\n\n  100% {\n    transform-origin: right bottom;\n    transform: rotate(0);\n    opacity: 1;\n  }\n}\n\n.animated.rotateInUpRight {\n  opacity: 1;\n\n  -webkit-animation-name: rotateInUpRight;\n  -moz-animation-name: rotateInUpRight;\n  -o-animation-name: rotateInUpRight;\n  animation-name: rotateInUpRight;\n}\n\n\n\n/*===================================================================================*/\n/*  rotateInDownRight                                                                */\n/*===================================================================================*/\n\n@-webkit-keyframes rotateInDownRight {\n  0% {\n    -webkit-transform-origin: right bottom;\n    -webkit-transform: rotate(90deg);\n    opacity: 0;\n  }\n\n  100% {\n    -webkit-transform-origin: right bottom;\n    -webkit-transform: rotate(0);\n    opacity: 1;\n  }\n}\n\n@-moz-keyframes rotateInDownRight {\n  0% {\n    -moz-transform-origin: right bottom;\n    -moz-transform: rotate(90deg);\n    opacity: 0;\n  }\n\n  100% {\n    -moz-transform-origin: right bottom;\n    -moz-transform: rotate(0);\n    opacity: 1;\n  }\n}\n\n@-o-keyframes rotateInDownRight {\n  0% {\n    -o-transform-origin: right bottom;\n    -o-transform: rotate(90deg);\n    opacity: 0;\n  }\n\n  100% {\n    -o-transform-origin: right bottom;\n    -o-transform: rotate(0);\n    opacity: 1;\n  }\n}\n\n@keyframes rotateInDownRight {\n  0% {\n    transform-origin: right bottom;\n    transform: rotate(90deg);\n    opacity: 0;\n  }\n\n  100% {\n    transform-origin: right bottom;\n    transform: rotate(0);\n    opacity: 1;\n  }\n}\n\n.animated.rotateInDownRight {\n  opacity: 1;\n\n  -webkit-animation-name: rotateInDownRight;\n  -moz-animation-name: rotateInDownRight;\n  -o-animation-name: rotateInDownRight;\n  animation-name: rotateInDownRight;\n}\n\n\n\n/*===================================================================================*/\n/*  lightSpeedRight                                                                  */\n/*===================================================================================*/\n\n@-webkit-keyframes lightSpeedRight {\n  0% { -webkit-transform: translateX(100%) skewX(-30deg); opacity: 0; }\n  60% { -webkit-transform: translateX(-20%) skewX(30deg); opacity: 1; }\n  80% { -webkit-transform: translateX(0%) skewX(-15deg); opacity: 1; }\n  100% { -webkit-transform: translateX(0%) skewX(0deg); opacity: 1; }\n}\n\n@-moz-keyframes lightSpeedRight {\n  0% { -moz-transform: translateX(100%) skewX(-30deg); opacity: 0; }\n  60% { -moz-transform: translateX(-20%) skewX(30deg); opacity: 1; }\n  80% { -moz-transform: translateX(0%) skewX(-15deg); opacity: 1; }\n  100% { -moz-transform: translateX(0%) skewX(0deg); opacity: 1; }\n}\n\n@-o-keyframes lightSpeedRight {\n  0% { -o-transform: translateX(100%) skewX(-30deg); opacity: 0; }\n  60% { -o-transform: translateX(-20%) skewX(30deg); opacity: 1; }\n  80% { -o-transform: translateX(0%) skewX(-15deg); opacity: 1; }\n  100% { -o-transform: translateX(0%) skewX(0deg); opacity: 1; }\n}\n\n@keyframes lightSpeedRight {\n  0% { transform: translateX(100%) skewX(-30deg); opacity: 0; }\n  60% { transform: translateX(-20%) skewX(30deg); opacity: 1; }\n  80% { transform: translateX(0%) skewX(-15deg); opacity: 1; }\n  100% { transform: translateX(0%) skewX(0deg); opacity: 1; }\n}\n\n.animated.lightSpeedRight {\n  opacity: 1;\n\n  -webkit-animation-name: lightSpeedRight;\n  -moz-animation-name: lightSpeedRight;\n  -o-animation-name: lightSpeedRight;\n  animation-name: lightSpeedRight;\n\n  -webkit-animation-timing-function: ease-out;\n  -moz-animation-timing-function: ease-out;\n  -o-animation-timing-function: ease-out;\n  animation-timing-function: ease-out;\n}\n\n.animated.lightSpeedRight {\n  opacity: 1;\n\n  -webkit-animation-duration: 0.5s;\n  -moz-animation-duration: 0.5s;\n  -o-animation-duration: 0.5s;\n  animation-duration: 0.5s;\n}\n\n\n\n/*===================================================================================*/\n/*  lightSpeedLeft                                                                  */\n/*===================================================================================*/\n\n@-webkit-keyframes lightSpeedLeft {\n  0% { -webkit-transform: translateX(-100%) skewX(-30deg); opacity: 0; }\n  60% { -webkit-transform: translateX(20%) skewX(30deg); opacity: 1; }\n  80% { -webkit-transform: translateX(0%) skewX(-15deg); opacity: 1; }\n  100% { -webkit-transform: translateX(0%) skewX(0deg); opacity: 1; }\n}\n\n@-moz-keyframes lightSpeedLeft {\n  0% { -moz-transform: translateX(-100%) skewX(-30deg); opacity: 0; }\n  60% { -moz-transform: translateX(20%) skewX(30deg); opacity: 1; }\n  80% { -moz-transform: translateX(0%) skewX(-15deg); opacity: 1; }\n  100% { -moz-transform: translateX(0%) skewX(0deg); opacity: 1; }\n}\n\n@-o-keyframes lightSpeedLeft {\n  0% { -o-transform: translateX(-100%) skewX(-30deg); opacity: 0; }\n  60% { -o-transform: translateX(20%) skewX(30deg); opacity: 1; }\n  80% { -o-transform: translateX(0%) skewX(-15deg); opacity: 1; }\n  100% { -o-transform: translateX(0%) skewX(0deg); opacity: 1; }\n}\n\n@keyframes lightSpeedLeft {\n  0% { transform: translateX(-100%) skewX(-30deg); opacity: 0; }\n  60% { transform: translateX(20%) skewX(30deg); opacity: 1; }\n  80% { transform: translateX(0%) skewX(-15deg); opacity: 1; }\n  100% { transform: translateX(0%) skewX(0deg); opacity: 1; }\n}\n\n.animated.lightSpeedLeft {\n  opacity: 1;\n\n  -webkit-animation-name: lightSpeedLeft;\n  -moz-animation-name: lightSpeedLeft;\n  -o-animation-name: lightSpeedLeft;\n  animation-name: lightSpeedLeft;\n\n  -webkit-animation-timing-function: ease-out;\n  -moz-animation-timing-function: ease-out;\n  -o-animation-timing-function: ease-out;\n  animation-timing-function: ease-out;\n}\n\n.animated.lightSpeedLeft {\n  opacity: 1;\n\n  -webkit-animation-duration: 0.5s;\n  -moz-animation-duration: 0.5s;\n  -o-animation-duration: 0.5s;\n  animation-duration: 0.5s;\n}\n\n\n\n/*===================================================================================*/\n/*  rollin                                                                          */\n/*===================================================================================*/\n\n@-webkit-keyframes rollIn {\n  0% { opacity: 0; -webkit-transform: translateX(-100%) rotate(-120deg); }\n  100% { opacity: 1; -webkit-transform: translateX(0px) rotate(0deg); }\n}\n\n@-moz-keyframes rollIn {\n  0% { opacity: 0; -moz-transform: translateX(-100%) rotate(-120deg); }\n  100% { opacity: 1; -moz-transform: translateX(0px) rotate(0deg); }\n}\n\n@-o-keyframes rollIn {\n  0% { opacity: 0; -o-transform: translateX(-100%) rotate(-120deg); }\n  100% { opacity: 1; -o-transform: translateX(0px) rotate(0deg); }\n}\n\n@keyframes rollIn {\n  0% { opacity: 0; transform: translateX(-100%) rotate(-120deg); }\n  100% { opacity: 1; transform: translateX(0px) rotate(0deg); }\n}\n\n.animated.rollIn {\n  opacity: 1;\n\n  -webkit-animation-name: rollIn;\n  -moz-animation-name: rollIn;\n  -o-animation-name: rollIn;\n  animation-name: rollIn;\n}\n\n\n.op0 {\n  opacity: 0.01;\n}\n\n/* Remove lazy for mobile devices */\n@media only screen and (max-width: 1024px) {\n  .op0 {\n    opacity: 1;\n  }\n}\n"; });
 define('text!app.html', ['module'], function(module) { module.exports = "<template>\n  <require from=\"bootstrap/css/bootstrap.css\"></require>\n  <require from=\"css/animate.css\"></require>\n  <require from=\"css/business-casual.css\"></require>\n  <require from=\"resources/elements/footer-nav\"></require>\n  <require from=\"resources/elements/header-nav\"></require>\n\n\n  <div class=\"brand\">${businessName}</div>\n  <div class=\"address-bar\">${aData.streetAdr} | ${aData.city}, ${aData.state} ${aData.zip} | ${aData.phone}</div>\n  <header-nav router.bind=\"router\"></header-nav>\n  <router-view></router-view>\n  <footer-nav></footer-nav>\n</template>\n"; });
-define('text!css/business-casual.css', ['module'], function(module) { module.exports = "/*!\n * Start Bootstrap - Business Casual (http://startbootstrap.com/)\n * Copyright 2013-2016 Start Bootstrap\n * Licensed under MIT (https://github.com/BlackrockDigital/startbootstrap/blob/gh-pages/LICENSE)\n */\n\n@font-face {\n    font-family: 'Glyphicons Halflings';\n    src: url('src/fonts/glyphicons-halflings-regular.eot');\n    src: url('src/fonts/glyphicons-halflings-regular.eot?#iefix') format('embedded-opentype'), url('src/fonts/glyphicons-halflings-regular.woff') format('woff'), url('src/fonts/glyphicons-halflings-regular.ttf') format('truetype'), url('src/fonts/glyphicons-halflings-regular.svg#glyphicons-halflingsregular') format('svg');\n}\n\nbody {\n    font-family: \"Open Sans\",\"Helvetica Neue\",Helvetica,Arial,sans-serif;\n    background: url('src/img/bg.jpg') no-repeat center center fixed;\n    -webkit-background-size: cover;\n    -moz-background-size: cover;\n    background-size: cover;\n    -o-background-size: cover;\n}\n\nh1,\nh2,\nh3,\nh4,\nh5,\nh6 {\n    text-transform: uppercase;\n    font-family: \"Josefin Slab\",\"Helvetica Neue\",Helvetica,Arial,sans-serif;\n    font-weight: 700;\n    letter-spacing: 1px;\n}\n\np {\n    font-size: 1.25em;\n    line-height: 1.6;\n    color: #000;\n}\n\nhr {\n    max-width: 400px;\n    border-color: #999999;\n}\n\n.brand,\n.address-bar {\n    display: none;\n}\n\n.navbar-brand {\n    text-transform: uppercase;\n    font-weight: 900;\n    letter-spacing: 2px;\n}\n\n.navbar-nav {\n    text-transform: uppercase;\n    font-weight: 400;\n    letter-spacing: 3px;\n}\n\n.img-full {\n    min-width: 100%;\n}\n\n.brand-before,\n.brand-name {\n    text-transform: capitalize;\n}\n\n.brand-before {\n    margin: 15px 0;\n}\n\n.brand-name {\n    margin: 0;\n    font-size: 4em;\n}\n\n.tagline-divider {\n    margin: 15px auto 3px;\n    max-width: 250px;\n    border-color: #999999;\n}\n\n.box {\n    margin-bottom: 20px;\n    padding: 30px 15px;\n    background: #fff;\n    background: rgba(255,255,255,0.8);\n}\n\n.intro-text {\n    text-transform: uppercase;\n    font-size: 1.25em;\n    font-weight: 400;\n    letter-spacing: 1px;\n}\n\n.img-border {\n    float: none;\n    margin: 0 auto 0;\n    border: #999999 solid 1px;\n}\n\n.img-left {\n    float: none;\n    margin: 0 auto 0;\n}\n\nfooter {\n    background: #fff;\n    background: rgba(255,255,255,0.9);\n}\n\nfooter p {\n    margin: 0;\n    padding: 50px 0;\n}\n\n@media screen and (min-width:768px) {\n    .brand {\n        display: inherit;\n        margin: 0;\n        padding: 30px 0 10px;\n        text-align: center;\n        text-shadow: 1px 1px 2px rgba(0,0,0,0.5);\n        font-family: \"Josefin Slab\",\"Helvetica Neue\",Helvetica,Arial,sans-serif;\n        font-size: 5em;\n        font-weight: 700;\n        line-height: normal;\n        color: #fff;\n    }\n\n    .top-divider {\n        margin-top: 0;\n    }\n\n    .img-left {\n        float: left;\n        margin-right: 25px;\n    }\n\n    .address-bar {\n        display: inherit;\n        margin: 0;\n        padding: 0 0 40px;\n        text-align: center;\n        text-shadow: 1px 1px 2px rgba(0,0,0,0.5);\n        text-transform: uppercase;\n        font-size: 1.25em;\n        font-weight: 400;\n        letter-spacing: 3px;\n        color: #fff;\n    }\n\n    .navbar {\n        border-radius: 0;\n    }\n\n    .navbar-header {\n        display: none;\n    }\n\n    .navbar {\n        min-height: 0;\n    }\n\n    .navbar-default {\n        border: none;\n        background: #fff;\n        background: rgba(255,255,255,0.9);\n    }\n\n    .nav>li>a {\n        padding: 35px;\n    }\n\n    .navbar-nav>li>a {\n        line-height: normal;\n    }\n\n    .navbar-nav {\n        display: table;\n        float: none;\n        margin: 0 auto;\n        table-layout: fixed;\n        font-size: 1.25em;\n    }\n}\n\n@media screen and (min-width:1200px) {\n    .box:after {\n        content: '';\n        display: table;\n        clear: both;\n    }\n}\n\n.slide-1 {\n    background: url('../../src/img/slide-1.jpg');\n}\n\n.slide-2 {\n    background: url('../../src/img/slide-2.jpg');\n}\n\n.slide-3 {\n    background: url('../../src/img/slide-3.jpg');\n}\n\n.team {\n    width: 50%;\n    margin: 0 auto;\n}\n\n.media {\n    width: 50%;\n    margin: 0 auto;\n}\n\ndiv.team-ctnr {\n    padding-left: 6rem;\n    padding-right: 6rem;\n}\n\n.testimonial--fade-bg {\n    background-size: cover;\n    background-position: 50%;\n    background-repeat: no-repeat;\n    animation-duration: 24s;\n    animation-name: fade-bg;\n    animation-delay: 0;\n    animation-iteration-count: infinite;\n    animation-direction: forward;\n\n}\n\n@keyframes fade-bg {\n    0% {\n        opacity: 0;\n    }\n\n    25% {\n        opacity: 1;\n    }\n\n    50% {\n        opacity: 0;\n    }\n\n    51% {\n        opacity: 0;\n    }\n\n    75% {\n        opacity: 1;\n    }\n\n    100% {\n        opacity: 0;\n    }\n}\n\n.text-danger {\n    color: maroon !important;\n}\n\n\n/* Glyphicon Red */\nspan.glyphicon-stats {\n    color: #d9534f;\n}\n.btn-outline {\n    color: inherit;\n    transition: all .8s;\n    background-color: transparent;\n}\n.btn-primary.btn-outline {\n    color: #428bca;\n    background-color: transparent;\n}\n.btn-success.btn-outline {\n    color: #5cb85c;\n    background-color: transparent;\n}\n.btn-info.btn-outline {\n    color: #5bc0de;\n    background-color: transparent;\n}\n.btn-warning.btn-outline {\n    color: #f0ad4e;\n    background-color: transparent;\n}\n.btn-danger.btn-outline {\n    color: #d9534f;\n    background-color: transparent;\n}\n.btn-primary.btn-outline:hover,\n.btn-success.btn-outline:hover,\n.btn-info.btn-outline:hover,\n.btn-warning.btn-outline:hover,\n.btn-danger.btn-outline:hover {\n    color: #fff;\n}\n\n.btn-danger.btn-outline:hover {\n    color: maroon;\n}\n.btn-outline.btn-lg {\n    background-color: transparent;\n    padding-left: 40px;\n    padding-right: 40px;\n    padding-top: 10px;\n    padding-bottom: 10px;\n}\n\n.content {\n    text-align: center;\n}\n"; });
-define('text!blog.html', ['module'], function(module) { module.exports = "<template>\n    <require from=\"resources/value-converters/dateformat\"></require>\n    <require from=\"resources/attributes/wookmark\"></require>\n    <div class=\"container wow fadeIn\" id=\"test\">\n\n        <div class=\"row\">\n            <div class=\"box\">\n                <div class=\"col-lg-12\">\n                    <hr>\n                    <h2 class=\"intro-text text-center\">Company\n                        <strong>blog</strong>\n                    </h2>\n                    <hr>\n                </div>\n                <div class=\"col-lg-12 text-center\" repeat.for=\"post of displayedPosts\" >\n                    <img class=\"img-responsive img-border img-full\" src=${post.url} alt=\"\">\n                    <h2>Post Title\n                        <br>\n                        <small>${post.date | dateFormat} </small>\n                    </h2>\n                    <p>${post.body}</p>\n                    <a href=\"#\" class=\"btn btn-default btn-lg\">Read More</a>\n                    <hr>\n                </div>\n                <div class=\"col-lg-12 text-center\">\n                    <ul class=\"pager\">\n                        <li class=\"previous\"><a href=\"#\" click.delegate=\"newerPosts($event)\">&larr; Older </a>\n                        </li>\n                        <li class=\"next\"><a href=\"#\" click.delegate=\"\">Newer &rarr;</a>\n                        </li>\n                    </ul>\n                </div>\n            </div>\n        </div>\n\n    </div>\n    <!-- /.container -->\n  <!--  <div class=\"container wow fadeIn\">\n        <div class=\"row\" id=\"main\">\n            <ul id=\"tiles\" wookmark>\n                &lt;!&ndash; These are our grid blocks &ndash;&gt;\n                <li onclick=\"location.href='single-page.html';\" repeat.for=\"post of posts\">\n                    <img src=\"images/img1.jpg\" width=\"282\" height=\"118\">\n                    <div class=\"post-info\">\n                        <div class=\"post-basic-info\">\n                            <h3><a href=\"#\">${post.title.rendered}</a></h3>\n                            <span>Created: <a href=\"#\"><label>${post.date | dateFormat}</label></a></span>\n                            <p>Lorem Ipsum is simply dummy text of the printing & typesetting industry.</p>\n                        </div>\n                        <div class=\"post-info-rate-share\">\n                            <div class=\"rateit\">\n                                <span> </span>\n                            </div>\n                            <div class=\"post-share\">\n                                <span> </span>\n                            </div>\n                            <div class=\"clear\"> </div>\n                        </div>\n                    </div>\n                </li>\n            </ul>\n        </div>\n    </div>-->\n    <script type=\"text/javascript\">\n   /*     (function ($){\n            var $tiles = $('#tiles'),\n                    $handler = $('li', $tiles),\n                    $main = $('#main'),\n                    $window = $(window),\n                    $document = $(document),\n                    options = {\n                        autoResize: true, // This will auto-update the layout when the browser window is resized.\n                        container: $main, // Optional, used for some extra CSS styling\n                        offset: 20, // Optional, the distance between grid items\n                        itemWidth:280 // Optional, the width of a grid item\n                    };\n            /!**\n             * Reinitializes the wookmark handler after all images have loaded\n             *!/\n            function applyLayout() {\n                $tiles.imagesLoaded(function() {\n                    // Destroy the old handler\n                    if ($handler.wookmarkInstance) {\n                        $handler.wookmarkInstance.clear();\n                    }\n\n                    // Create a new layout handler.\n                    $handler = $('li', $tiles);\n                    $handler.wookmark(options);\n                });\n            }\n            /!**\n             * When scrolled all the way to the bottom, add more tiles\n             *!/\n            function onScroll() {\n                // Check if we're within 100 pixels of the bottom edge of the broser window.\n                var winHeight = window.innerHeight ? window.innerHeight : $window.height(), // iphone fix\n                        closeToBottom = ($window.scrollTop() + winHeight > $document.height() - 100);\n\n                if (closeToBottom) {\n                    // Get the first then items from the grid, clone them, and add them to the bottom of the grid\n                    var $items = $('li', $tiles),\n                            $firstTen = $items.slice(0, 10);\n                    $tiles.append($firstTen.clone());\n\n                    applyLayout();\n                }\n            };\n\n            // Call the layout function for the first time\n            applyLayout();\n\n            // Capture scroll event.\n            $window.bind('scroll.wookmark', onScroll);\n        })(jQuery);*/\n    </script>\n</template>"; });
-define('text!css/main.css', ['module'], function(module) { module.exports = "\n#tiles {\n    list-style-type: none;\n    position: relative; /** Needed to ensure items are laid out relative to this container **/\n    margin: 0;\n    padding: 0;\n}\n#tiles li:hover img{\n    opacity:0.8;\n}\n/**\n * Grid items\n */\n#tiles li {\n    width: 280px;\n    background-color: #ffffff;\n    border: 1px solid #dedede;\n    border-radius: 2px;\n    -moz-border-radius: 2px;\n    -webkit-border-radius: 2px;\n    display: none;\n    cursor: pointer;\n    border-radius: 0.2em;\n}\n#tiles li img{\n    border-top-left-radius:0.2em;\n    border-top-right-radius:0.2em;\n}\n#tiles li.inactive {\n    visibility: hidden;\n    opacity: 0;\n}\n\n#tiles li img {\n    display: block;\n}\n"; });
+define('text!css/business-casual.css', ['module'], function(module) { module.exports = "/*!\n * Start Bootstrap - Business Casual (http://startbootstrap.com/)\n * Copyright 2013-2016 Start Bootstrap\n * Licensed under MIT (https://github.com/BlackrockDigital/startbootstrap/blob/gh-pages/LICENSE)\n */\n\n@font-face {\n    font-family: 'Glyphicons Halflings';\n    src: url('src/fonts/glyphicons-halflings-regular.eot');\n    src: url('src/fonts/glyphicons-halflings-regular.eot?#iefix') format('embedded-opentype'), url('src/fonts/glyphicons-halflings-regular.woff') format('woff'), url('src/fonts/glyphicons-halflings-regular.ttf') format('truetype'), url('src/fonts/glyphicons-halflings-regular.svg#glyphicons-halflingsregular') format('svg');\n}\n\nbody {\n    font-family: \"Open Sans\",\"Helvetica Neue\",Helvetica,Arial,sans-serif;\n    background-color: rgba(0, 0, 0, .65);\n    background:   linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)),  url('src/img/bg.jpg') no-repeat center center fixed;\n    -webkit-background-size: cover;\n    -moz-background-size: cover;\n    background-size: cover;\n    -o-background-size: cover;\n\n\n}\n\nh1,\nh2,\nh3,\nh4,\nh5,\nh6 {\n    text-transform: uppercase;\n    font-family: \"Josefin Slab\",\"Helvetica Neue\",Helvetica,Arial,sans-serif;\n    font-weight: 700;\n    letter-spacing: 1px;\n}\n\np {\n    font-size: 1.25em;\n    line-height: 1.6;\n    color: #000;\n}\n\nhr {\n    max-width: 400px;\n    border-color: #999999;\n}\n\n.brand,\n.address-bar {\n    display: none;\n}\n\n.navbar-brand {\n    text-transform: uppercase;\n    font-weight: 900;\n    letter-spacing: 2px;\n}\n\n.navbar-nav {\n    text-transform: uppercase;\n    font-weight: 400;\n    letter-spacing: 3px;\n}\n\n.img-full {\n    min-width: 100%;\n}\n\n.brand-before,\n.brand-name {\n    text-transform: capitalize;\n}\n\n.brand-before {\n    margin: 15px 0;\n}\n\n.brand-name {\n    margin: 0;\n    font-size: 4em;\n}\n\n.tagline-divider {\n    margin: 15px auto 3px;\n    max-width: 250px;\n    border-color: #999999;\n}\n\n.box {\n    margin-bottom: 20px;\n    padding: 30px 15px;\n    background: #fff;\n    background: rgba(255,255,255,0.8);\n\n}\n\n\n\n.intro-text {\n    text-transform: uppercase;\n    font-size: 1.25em;\n    font-weight: 400;\n    letter-spacing: 1px;\n}\n\n.img-border {\n    float: none;\n    margin: 0 auto 0;\n    border: #999999 solid 1px;\n}\n\n.img-left {\n    float: none;\n    margin: 0 auto 0;\n}\n\nfooter {\n    background: #fff;\n    background: rgba(255,255,255,0.9);\n}\n\nfooter p {\n    margin: 0;\n    padding: 50px 0;\n}\n\n@media screen and (min-width:768px) {\n    .brand {\n        display: inherit;\n        margin: 0;\n        padding: 30px 0 10px;\n        text-align: center;\n        text-shadow: 1px 1px 2px rgba(0,0,0,0.5);\n        font-family: \"Josefin Slab\",\"Helvetica Neue\",Helvetica,Arial,sans-serif;\n        font-size: 5em;\n        font-weight: 700;\n        line-height: normal;\n        color: #fff;\n    }\n\n    .top-divider {\n        margin-top: 0;\n    }\n\n    .img-left {\n        float: left;\n        margin-right: 25px;\n    }\n\n    .address-bar {\n        display: inherit;\n        margin: 0;\n        padding: 0 0 40px;\n        text-align: center;\n        text-shadow: 1px 1px 2px rgba(0,0,0,0.5);\n        text-transform: uppercase;\n        font-size: 1.25em;\n        font-weight: 400;\n        letter-spacing: 3px;\n        color: #fff;\n    }\n\n    .navbar {\n        border-radius: 0;\n    }\n\n    .navbar-header {\n        display: none;\n    }\n\n    .navbar {\n        min-height: 0;\n    }\n\n    .navbar-default {\n        border: none;\n        background: #fff;\n        background: rgba(255,255,255,0.9);\n    }\n\n    .nav>li>a {\n        padding: 35px;\n    }\n\n    .navbar-nav>li>a {\n        line-height: normal;\n    }\n\n    .navbar-nav {\n        display: table;\n        float: none;\n        margin: 0 auto;\n        table-layout: fixed;\n        font-size: 1.25em;\n    }\n}\n\n@media screen and (min-width:1200px) {\n    .box:after {\n        content: '';\n        display: table;\n        clear: both;\n    }\n}\n\n.slide-1 {\n    background: url('../../src/img/slide-1.jpg');\n}\n\n.slide-2 {\n    background: url('../../src/img/slide-2.jpg');\n}\n\n.slide-3 {\n    background: url('../../src/img/slide-3.jpg');\n}\n\n.team {\n    width: 50%;\n    margin: 0 auto;\n}\n\n.media {\n    width: 50%;\n    margin: 0 auto;\n}\n\ndiv.team-ctnr {\n    padding-left: 6rem;\n    padding-right: 6rem;\n}\n\n.testimonial--fade-bg {\n    background-size: cover;\n    background-position: 50%;\n    background-repeat: no-repeat;\n    animation-duration: 24s;\n    animation-name: fade-bg;\n    animation-delay: 0;\n    animation-iteration-count: infinite;\n    animation-direction: forward;\n\n}\n\n@keyframes fade-bg {\n    0% {\n        opacity: 0;\n    }\n\n    25% {\n        opacity: 1;\n    }\n\n    50% {\n        opacity: 0;\n    }\n\n    51% {\n        opacity: 0;\n    }\n\n    75% {\n        opacity: 1;\n    }\n\n    100% {\n        opacity: 0;\n    }\n}\n\n.text-danger {\n    color: maroon !important;\n}\n\n\n/* Glyphicon Red */\nspan.glyphicon-stats {\n    color: #d9534f;\n}\n.btn-outline {\n    color: inherit;\n    transition: all .8s;\n    background-color: transparent;\n}\n.btn-primary.btn-outline {\n    color: #428bca;\n    background-color: transparent;\n}\n.btn-success.btn-outline {\n    color: #5cb85c;\n    background-color: transparent;\n}\n.btn-info.btn-outline {\n    color: #5bc0de;\n    background-color: transparent;\n}\n.btn-warning.btn-outline {\n    color: #f0ad4e;\n    background-color: transparent;\n}\n.btn-danger.btn-outline {\n    color: #d9534f;\n    background-color: transparent;\n}\n.btn-primary.btn-outline:hover,\n.btn-success.btn-outline:hover,\n.btn-info.btn-outline:hover,\n.btn-warning.btn-outline:hover,\n.btn-danger.btn-outline:hover {\n    color: #fff;\n}\n\n.btn-danger.btn-outline:hover {\n    color: maroon;\n}\n.btn-outline.btn-lg {\n    background-color: transparent;\n    padding-left: 40px;\n    padding-right: 40px;\n    padding-top: 10px;\n    padding-bottom: 10px;\n}\n\n.content {\n    text-align: center;\n}\n"; });
+define('text!blog.html', ['module'], function(module) { module.exports = "<template>\n    <require from=\"resources/value-converters/dateformat\"></require>\n    <require from=\"resources/attributes/wookmark\"></require>\n    <div class=\"container wow fadeIn\" id=\"test\">\n\n        <div class=\"row\">\n            <div class=\"box\">\n                <div class=\"col-lg-12\">\n                    <hr>\n                    <h2 class=\"intro-text text-center\">Company\n                        <strong>blog</strong>\n                    </h2>\n                    <hr>\n                </div>\n                <div class=\"col-lg-12 text-center\" repeat.for=\"post of displayedPosts\" >\n                    <img class=\"img-responsive img-border img-full\" src=${post.url} alt=\"\">\n                    <h2>Post Title\n                        <br>\n                        <small>${post.date | dateFormat} </small>\n                    </h2>\n                    <p>${post.body}</p>\n                    <a href=\"#\" class=\"btn btn-default btn-lg\">Read More</a>\n                    <hr>\n                </div>\n                <div class=\"col-lg-12 text-center\">\n                    <ul class=\"pager\">\n                        <li class=\"previous\"><a href=\"#\" click.delegate=\"page($event, 'increment')\">&larr; Older </a>\n                        </li>\n                        <li class=\"next\"><a href=\"#\" click.delegate=\"page($event, 'decrement')\" >Newer &rarr;</a>\n                        </li>\n                    </ul>\n                </div>\n            </div>\n        </div>\n\n    </div>\n    <!-- /.container -->\n</template>"; });
+define('text!css/main.css', ['module'], function(module) { module.exports = "\n#tiles {\n    list-style-type: none;\n    position: relative; /** Needed to ensure items are laid out relative to this container **/\n    margin: 0;\n    padding: 0;\n}\n#tiles li:hover img{\n    opacity:0.8;\n}\n/**\n * Grid items\n */\n#tiles li {\n    width: 280px;\n    background-color: #ffffff;\n    border: 1px solid #dedede;\n    border-radius: 2px;\n    -moz-border-radius: 2px;\n    -webkit-border-radius: 2px;\n    display: none;\n    cursor: pointer;\n    border-radius: 0.2em;\n}\n#tiles li img{\n    border-top-left-radius:0.2em;\n    border-top-right-radius:0.2em;\n}\n#tiles li.inactive {\n    visibility: hidden;\n    opacity: 0;\n}\n\n#tiles li img {\n    display: block;\n}\n\n"; });
 define('text!contact.html', ['module'], function(module) { module.exports = "<template>\n\n    <require from=\"resources/elements/validation-summary.html\"></require>\n\n    <div class=\"container wow fadeIn\">\n        <div class=\"row\">\n            <div class=\"box\">\n                <div class=\"col-lg-12\">\n                    <hr>\n                    <h2 class=\"intro-text text-center\">Contact\n                        <strong>${businessName}</strong>\n                    </h2>\n                    <hr>\n                </div>\n                <div class=\"col-md-8 wow fadeInUp\">\n                    <!-- Embedded Google Map using an iframe - to select your location find it on Google maps and paste the link as the iframe src. If you want to use the Google Maps API instead then have at it! -->\n                    <iframe width=\"100%\" height=\"400\" frameborder=\"0\" scrolling=\"no\" marginheight=\"0\" marginwidth=\"0\" src=\"http://maps.google.com/maps?hl=en&amp;ie=UTF8&amp;ll=37.0625,-95.677068&amp;spn=56.506174,79.013672&amp;t=m&amp;z=4&amp;output=embed\"></iframe>\n                </div>\n                <div class=\"col-md-4\">\n                    <p><i class=\"glyphicon glyphicon-earphone\"></i>\n                        <strong>${aData.phone}</strong>\n                    </p>\n                    <p><i class=\"glyphicon glyphicon-globe\"></i>\n                        <strong>${aData.streetAdr}\n                            <br>${aData.city}, ${aData.state} ${aData.zip}</strong>\n                    </p>\n                </div>\n                <div class=\"clearfix\"></div>\n            </div>\n        </div>\n\n        <div class=\"row\">\n            <div class=\"box\">\n                <div class=\"col-lg-12\">\n                    <hr>\n                    <h2 class=\"intro-text text-center\">Contact\n                        <strong>form</strong>\n                    </h2>\n                    <hr>\n                    <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Fugiat, vitae, distinctio, possimus repudiandae cupiditate ipsum excepturi dicta neque eaque voluptates tempora veniam esse earum sapiente optio deleniti consequuntur eos voluptatem.</p>\n                    <form role=\"form\" validation-renderer=\"bootstrap-form\" validation-errors.bind=\"errors\">\n\n                        <validation-summary errors.bind=\"errors\"\n                                            autofocus.bind=\"validationController.validateTrigger === 'manual'\">\n                        </validation-summary>\n\n                        <div class=\"row\">\n                            <div class=\"form-group col-lg-4\">\n                                <label>Name</label>\n                                <input type=\"text\" placeholder=\"name\" class=\"form-control\" value.bind=\"message.name & validate\">\n                            </div>\n                            <div class=\"form-group col-lg-4\">\n                                <label>Email Address</label>\n                                <input type=\"text\" placeholder=\"email\" class=\"form-control\" value.bind=\"message.email & validate\">\n                            </div>\n                            <div class=\"form-group col-lg-4\">\n                                <label>Phone Number</label>\n                                <input type=\"tel\" placeholder=\"555-555-5555\" class=\"form-control\" value.bind=\"message.phone\">\n                            </div>\n                            <div class=\"clearfix\"></div>\n                            <div class=\"form-group col-lg-12\">\n                                <label>Message</label>\n                                <textarea class=\"form-control\" name=\"message\" rows=\"6\" value.bind=\"message.message & validate\"></textarea>\n                            </div>\n                            <div class=\"form-group col-lg-12\">\n                                <input type=\"hidden\" name=\"save\" value=\"contact\">\n                                <ul class=\"content p-red\">\n                                    <button href=\"\" click.delegate=\"send(message)\" class=\"btn btn-danger btn-outline btn-lg\">\n                                        <i class=\"glyphicon glyphicon-send\"></i> Send\n                                    </button>\n                                </ul>\n                            </div>\n                        </div>\n                    </form>\n                </div>\n            </div>\n        </div>\n\n    </div>\n    <!-- /.container -->\n\n</template>\n"; });
 define('text!home.html', ['module'], function(module) { module.exports = "<template>\n    <require from=\"resources/elements/testimonials\"></require>\n\n    <div class=\"container wow fadeIn\">\n        <div class=\"row\">\n            <div class=\"box\">\n                <div class=\"col-lg-12 text-center\">\n                    <div id=\"carousel-example-generic\" class=\"carousel slide\">\n                        <!-- Indicators -->\n                        <ol class=\"carousel-indicators hidden-xs\">\n                            <li data-target=\"#carousel-example-generic\" data-slide-to=\"0\" class=\"active\"></li>\n                            <li data-target=\"#carousel-example-generic\" data-slide-to=\"1\"></li>\n                            <li data-target=\"#carousel-example-generic\" data-slide-to=\"2\"></li>\n                        </ol>\n\n                        <!-- Wrapper for slides -->\n                        <div class=\"carousel-inner\">\n                            <div class=\"item active\">\n                                <img class=\"img-responsive img-full\" src=\"src/img/slide-1.jpg\" alt=\"\">\n                            </div>\n                            <div class=\"item\">\n                                <img class=\"img-responsive img-full slide\" src=\"src/img/slide-2.jpg\" alt=\"\">\n                            </div>\n                            <div class=\"item\">\n                                <img class=\"img-responsive img-full\" src=\"src/img/slide-3.jpg\" alt=\"\">\n                            </div>\n                        </div>\n\n                        <!-- Controls -->\n                        <a class=\"left carousel-control\" href=\"#carousel-example-generic\" data-slide=\"prev\">\n                            <span class=\"icon-prev\"></span>\n                        </a>\n                        <a class=\"right carousel-control\" href=\"#carousel-example-generic\" data-slide=\"next\">\n                            <span class=\"icon-next\"></span>\n                        </a>\n                    </div>\n                    <h2 class=\"brand-before\">\n                        <small>Welcome to</small>\n                    </h2>\n                    <h1 class=\"brand-name\">${businessName}</h1>\n                    <hr class=\"tagline-divider\">\n                </div>\n            </div>\n        </div>\n\n        <div class=\"row\">\n            <div class=\"box\">\n                <div class=\"col-lg-12\">\n                    <hr>\n                    <h2 class=\"intro-text text-center\">Something something\n                        <strong>About Junksters</strong>\n                    </h2>\n                    <hr>\n                    <img class=\"img-responsive img-border img-left\" src=\"src/img/intro-pic.jpg\" alt=\"\">\n                    <hr class=\"visible-xs\">\n                    <p>The boxes used in this template are nested inbetween a normal Bootstrap row and the start of your column layout. The boxes will be full-width boxes, so if you want to make them smaller then you will need to customize.</p>\n                    <p>A huge thanks to <a href=\"http://join.deathtothestockphoto.com/\" target=\"_blank\">Death to the Stock Photo</a> for allowing us to use the beautiful photos that make this template really come to life. When using this template, make sure your photos are decent. Also make sure that the file size on your photos is kept to a minumum to keep load times to a minimum.</p>\n                    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc placerat diam quis nisl vestibulum dignissim. In hac habitasse platea dictumst. Interdum et malesuada fames ac ante ipsum primis in faucibus. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas.</p>\n                </div>\n            </div>\n        </div>\n\n        <div class=\"row\">\n            <div class=\"box\">\n                <div class=\"col-lg-12\">\n                    <hr>\n                    <h2 class=\"intro-text text-center\">What people are\n                        <strong>saying about us</strong>\n                    </h2>\n                    <hr>\n                    <testimonials view-model.ref=\"testimonials\"></testimonials>\n                </div>\n            </div>\n        </div>\n\n    </div>\n    <!-- /.container -->\n    <script>\n        $('.carousel').carousel({\n            interval: 5000 //changes the speed\n        })\n    </script>\n</template>"; });
 define('text!resources/elements/footer-nav.html', ['module'], function(module) { module.exports = "<template>\n  <footer>\n    <div class=\"container\">\n      <div class=\"row\">\n        <div class=\"col-lg-12 text-center\">\n          <p>${copyright}</p>\n        </div>\n      </div>\n    </div>\n  </footer>\n</template>"; });
@@ -3319,17 +3352,17 @@ define('text!wow/css/libs/animate.css', ['module'], function(module) { module.ex
 ;define('wow', ['wow/dist/wow'], function (main) { return main; });
 
 /*!
- * jQuery JavaScript Library v3.1.1
+ * jQuery JavaScript Library v3.2.1
  * https://jquery.com/
  *
  * Includes Sizzle.js
  * https://sizzlejs.com/
  *
- * Copyright jQuery Foundation and other contributors
+ * Copyright JS Foundation and other contributors
  * Released under the MIT license
  * https://jquery.org/license
  *
- * Date: 2016-09-22T22:30Z
+ * Date: 2017-03-20T18:59Z
  */
 ( function( global, factory ) {
 
@@ -3408,7 +3441,7 @@ var support = {};
 
 
 var
-	version = "3.1.1",
+	version = "3.2.1",
 
 	// Define a local copy of jQuery
 	jQuery = function( selector, context ) {
@@ -3556,11 +3589,11 @@ jQuery.extend = jQuery.fn.extend = function() {
 
 				// Recurse if we're merging plain objects or arrays
 				if ( deep && copy && ( jQuery.isPlainObject( copy ) ||
-					( copyIsArray = jQuery.isArray( copy ) ) ) ) {
+					( copyIsArray = Array.isArray( copy ) ) ) ) {
 
 					if ( copyIsArray ) {
 						copyIsArray = false;
-						clone = src && jQuery.isArray( src ) ? src : [];
+						clone = src && Array.isArray( src ) ? src : [];
 
 					} else {
 						clone = src && jQuery.isPlainObject( src ) ? src : {};
@@ -3598,8 +3631,6 @@ jQuery.extend( {
 	isFunction: function( obj ) {
 		return jQuery.type( obj ) === "function";
 	},
-
-	isArray: Array.isArray,
 
 	isWindow: function( obj ) {
 		return obj != null && obj === obj.window;
@@ -3673,10 +3704,6 @@ jQuery.extend( {
 	// Microsoft forgot to hump their vendor prefix (#9572)
 	camelCase: function( string ) {
 		return string.replace( rmsPrefix, "ms-" ).replace( rdashAlpha, fcamelCase );
-	},
-
-	nodeName: function( elem, name ) {
-		return elem.nodeName && elem.nodeName.toLowerCase() === name.toLowerCase();
 	},
 
 	each: function( obj, callback ) {
@@ -6163,6 +6190,13 @@ var siblings = function( n, elem ) {
 
 var rneedsContext = jQuery.expr.match.needsContext;
 
+
+
+function nodeName( elem, name ) {
+
+  return elem.nodeName && elem.nodeName.toLowerCase() === name.toLowerCase();
+
+};
 var rsingleTag = ( /^<([a-z][^\/\0>:\x20\t\r\n\f]*)[\x20\t\r\n\f]*\/?>(?:<\/\1>|)$/i );
 
 
@@ -6514,7 +6548,18 @@ jQuery.each( {
 		return siblings( elem.firstChild );
 	},
 	contents: function( elem ) {
-		return elem.contentDocument || jQuery.merge( [], elem.childNodes );
+        if ( nodeName( elem, "iframe" ) ) {
+            return elem.contentDocument;
+        }
+
+        // Support: IE 9 - 11 only, iOS 7 only, Android Browser <=4.3 only
+        // Treat the template element as a regular one in browsers that
+        // don't support it.
+        if ( nodeName( elem, "template" ) ) {
+            elem = elem.content || elem;
+        }
+
+        return jQuery.merge( [], elem.childNodes );
 	}
 }, function( name, fn ) {
 	jQuery.fn[ name ] = function( until, selector ) {
@@ -6612,7 +6657,7 @@ jQuery.Callbacks = function( options ) {
 		fire = function() {
 
 			// Enforce single-firing
-			locked = options.once;
+			locked = locked || options.once;
 
 			// Execute callbacks for all pending executions,
 			// respecting firingIndex overrides and runtime changes
@@ -6781,7 +6826,7 @@ function Thrower( ex ) {
 	throw ex;
 }
 
-function adoptValue( value, resolve, reject ) {
+function adoptValue( value, resolve, reject, noValue ) {
 	var method;
 
 	try {
@@ -6797,9 +6842,10 @@ function adoptValue( value, resolve, reject ) {
 		// Other non-thenables
 		} else {
 
-			// Support: Android 4.0 only
-			// Strict mode functions invoked without .call/.apply get global-object context
-			resolve.call( undefined, value );
+			// Control `resolve` arguments by letting Array#slice cast boolean `noValue` to integer:
+			// * false: [ value ].slice( 0 ) => resolve( value )
+			// * true: [ value ].slice( 1 ) => resolve()
+			resolve.apply( undefined, [ value ].slice( noValue ) );
 		}
 
 	// For Promises/A+, convert exceptions into rejections
@@ -6809,7 +6855,7 @@ function adoptValue( value, resolve, reject ) {
 
 		// Support: Android 4.0 only
 		// Strict mode functions invoked without .call/.apply get global-object context
-		reject.call( undefined, value );
+		reject.apply( undefined, [ value ] );
 	}
 }
 
@@ -7134,7 +7180,8 @@ jQuery.extend( {
 
 		// Single- and empty arguments are adopted like Promise.resolve
 		if ( remaining <= 1 ) {
-			adoptValue( singleValue, master.done( updateFunc( i ) ).resolve, master.reject );
+			adoptValue( singleValue, master.done( updateFunc( i ) ).resolve, master.reject,
+				!remaining );
 
 			// Use .then() to unwrap secondary thenables (cf. gh-3000)
 			if ( master.state() === "pending" ||
@@ -7205,15 +7252,6 @@ jQuery.extend( {
 	// A counter to track how many items to wait for before
 	// the ready event fires. See #6781
 	readyWait: 1,
-
-	// Hold (or release) the ready event
-	holdReady: function( hold ) {
-		if ( hold ) {
-			jQuery.readyWait++;
-		} else {
-			jQuery.ready( true );
-		}
-	},
 
 	// Handle when the DOM is ready
 	ready: function( wait ) {
@@ -7450,7 +7488,7 @@ Data.prototype = {
 		if ( key !== undefined ) {
 
 			// Support array or space separated string of keys
-			if ( jQuery.isArray( key ) ) {
+			if ( Array.isArray( key ) ) {
 
 				// If key is an array of keys...
 				// We always set camelCase keys, so remove that.
@@ -7676,7 +7714,7 @@ jQuery.extend( {
 
 			// Speed up dequeue by getting out quickly if this is just a lookup
 			if ( data ) {
-				if ( !queue || jQuery.isArray( data ) ) {
+				if ( !queue || Array.isArray( data ) ) {
 					queue = dataPriv.access( elem, type, jQuery.makeArray( data ) );
 				} else {
 					queue.push( data );
@@ -8053,7 +8091,7 @@ function getAll( context, tag ) {
 		ret = [];
 	}
 
-	if ( tag === undefined || tag && jQuery.nodeName( context, tag ) ) {
+	if ( tag === undefined || tag && nodeName( context, tag ) ) {
 		return jQuery.merge( [ context ], ret );
 	}
 
@@ -8660,7 +8698,7 @@ jQuery.event = {
 
 			// For checkbox, fire native event so checked state will be right
 			trigger: function() {
-				if ( this.type === "checkbox" && this.click && jQuery.nodeName( this, "input" ) ) {
+				if ( this.type === "checkbox" && this.click && nodeName( this, "input" ) ) {
 					this.click();
 					return false;
 				}
@@ -8668,7 +8706,7 @@ jQuery.event = {
 
 			// For cross-browser consistency, don't fire native .click() on links
 			_default: function( event ) {
-				return jQuery.nodeName( event.target, "a" );
+				return nodeName( event.target, "a" );
 			}
 		},
 
@@ -8945,11 +8983,12 @@ var
 	rscriptTypeMasked = /^true\/(.*)/,
 	rcleanScript = /^\s*<!(?:\[CDATA\[|--)|(?:\]\]|--)>\s*$/g;
 
+// Prefer a tbody over its parent table for containing new rows
 function manipulationTarget( elem, content ) {
-	if ( jQuery.nodeName( elem, "table" ) &&
-		jQuery.nodeName( content.nodeType !== 11 ? content : content.firstChild, "tr" ) ) {
+	if ( nodeName( elem, "table" ) &&
+		nodeName( content.nodeType !== 11 ? content : content.firstChild, "tr" ) ) {
 
-		return elem.getElementsByTagName( "tbody" )[ 0 ] || elem;
+		return jQuery( ">tbody", elem )[ 0 ] || elem;
 	}
 
 	return elem;
@@ -9479,12 +9518,18 @@ var getStyles = function( elem ) {
 
 function curCSS( elem, name, computed ) {
 	var width, minWidth, maxWidth, ret,
+
+		// Support: Firefox 51+
+		// Retrieving style before computed somehow
+		// fixes an issue with getting wrong values
+		// on detached elements
 		style = elem.style;
 
 	computed = computed || getStyles( elem );
 
-	// Support: IE <=9 only
-	// getPropertyValue is only needed for .css('filter') (#12537)
+	// getPropertyValue is needed for:
+	//   .css('filter') (IE 9 only, #12537)
+	//   .css('--customProperty) (#3144)
 	if ( computed ) {
 		ret = computed.getPropertyValue( name ) || computed[ name ];
 
@@ -9550,6 +9595,7 @@ var
 	// except "table", "table-cell", or "table-caption"
 	// See here for display values: https://developer.mozilla.org/en-US/docs/CSS/display
 	rdisplayswap = /^(none|table(?!-c[ea]).+)/,
+	rcustomProp = /^--/,
 	cssShow = { position: "absolute", visibility: "hidden", display: "block" },
 	cssNormalTransform = {
 		letterSpacing: "0",
@@ -9577,6 +9623,16 @@ function vendorPropName( name ) {
 			return name;
 		}
 	}
+}
+
+// Return a property mapped along what jQuery.cssProps suggests or to
+// a vendor prefixed property.
+function finalPropName( name ) {
+	var ret = jQuery.cssProps[ name ];
+	if ( !ret ) {
+		ret = jQuery.cssProps[ name ] = vendorPropName( name ) || name;
+	}
+	return ret;
 }
 
 function setPositiveNumber( elem, value, subtract ) {
@@ -9639,43 +9695,30 @@ function augmentWidthOrHeight( elem, name, extra, isBorderBox, styles ) {
 
 function getWidthOrHeight( elem, name, extra ) {
 
-	// Start with offset property, which is equivalent to the border-box value
-	var val,
-		valueIsBorderBox = true,
+	// Start with computed style
+	var valueIsBorderBox,
 		styles = getStyles( elem ),
+		val = curCSS( elem, name, styles ),
 		isBorderBox = jQuery.css( elem, "boxSizing", false, styles ) === "border-box";
 
-	// Support: IE <=11 only
-	// Running getBoundingClientRect on a disconnected node
-	// in IE throws an error.
-	if ( elem.getClientRects().length ) {
-		val = elem.getBoundingClientRect()[ name ];
+	// Computed unit is not pixels. Stop here and return.
+	if ( rnumnonpx.test( val ) ) {
+		return val;
 	}
 
-	// Some non-html elements return undefined for offsetWidth, so check for null/undefined
-	// svg - https://bugzilla.mozilla.org/show_bug.cgi?id=649285
-	// MathML - https://bugzilla.mozilla.org/show_bug.cgi?id=491668
-	if ( val <= 0 || val == null ) {
+	// Check for style in case a browser which returns unreliable values
+	// for getComputedStyle silently falls back to the reliable elem.style
+	valueIsBorderBox = isBorderBox &&
+		( support.boxSizingReliable() || val === elem.style[ name ] );
 
-		// Fall back to computed then uncomputed css if necessary
-		val = curCSS( elem, name, styles );
-		if ( val < 0 || val == null ) {
-			val = elem.style[ name ];
-		}
-
-		// Computed unit is not pixels. Stop here and return.
-		if ( rnumnonpx.test( val ) ) {
-			return val;
-		}
-
-		// Check for style in case a browser which returns unreliable values
-		// for getComputedStyle silently falls back to the reliable elem.style
-		valueIsBorderBox = isBorderBox &&
-			( support.boxSizingReliable() || val === elem.style[ name ] );
-
-		// Normalize "", auto, and prepare for extra
-		val = parseFloat( val ) || 0;
+	// Fall back to offsetWidth/Height when value is "auto"
+	// This happens for inline elements with no explicit setting (gh-3571)
+	if ( val === "auto" ) {
+		val = elem[ "offset" + name[ 0 ].toUpperCase() + name.slice( 1 ) ];
 	}
+
+	// Normalize "", auto, and prepare for extra
+	val = parseFloat( val ) || 0;
 
 	// Use the active box-sizing model to add/subtract irrelevant styles
 	return ( val +
@@ -9740,10 +9783,15 @@ jQuery.extend( {
 		// Make sure that we're working with the right name
 		var ret, type, hooks,
 			origName = jQuery.camelCase( name ),
+			isCustomProp = rcustomProp.test( name ),
 			style = elem.style;
 
-		name = jQuery.cssProps[ origName ] ||
-			( jQuery.cssProps[ origName ] = vendorPropName( origName ) || origName );
+		// Make sure that we're working with the right name. We don't
+		// want to query the value if it is a CSS custom property
+		// since they are user-defined.
+		if ( !isCustomProp ) {
+			name = finalPropName( origName );
+		}
 
 		// Gets hook for the prefixed version, then unprefixed version
 		hooks = jQuery.cssHooks[ name ] || jQuery.cssHooks[ origName ];
@@ -9779,7 +9827,11 @@ jQuery.extend( {
 			if ( !hooks || !( "set" in hooks ) ||
 				( value = hooks.set( elem, value, extra ) ) !== undefined ) {
 
-				style[ name ] = value;
+				if ( isCustomProp ) {
+					style.setProperty( name, value );
+				} else {
+					style[ name ] = value;
+				}
 			}
 
 		} else {
@@ -9798,11 +9850,15 @@ jQuery.extend( {
 
 	css: function( elem, name, extra, styles ) {
 		var val, num, hooks,
-			origName = jQuery.camelCase( name );
+			origName = jQuery.camelCase( name ),
+			isCustomProp = rcustomProp.test( name );
 
-		// Make sure that we're working with the right name
-		name = jQuery.cssProps[ origName ] ||
-			( jQuery.cssProps[ origName ] = vendorPropName( origName ) || origName );
+		// Make sure that we're working with the right name. We don't
+		// want to modify the value if it is a CSS custom property
+		// since they are user-defined.
+		if ( !isCustomProp ) {
+			name = finalPropName( origName );
+		}
 
 		// Try prefixed name followed by the unprefixed name
 		hooks = jQuery.cssHooks[ name ] || jQuery.cssHooks[ origName ];
@@ -9827,6 +9883,7 @@ jQuery.extend( {
 			num = parseFloat( val );
 			return extra === true || isFinite( num ) ? num || 0 : val;
 		}
+
 		return val;
 	}
 } );
@@ -9926,7 +9983,7 @@ jQuery.fn.extend( {
 				map = {},
 				i = 0;
 
-			if ( jQuery.isArray( name ) ) {
+			if ( Array.isArray( name ) ) {
 				styles = getStyles( elem );
 				len = name.length;
 
@@ -10064,13 +10121,18 @@ jQuery.fx.step = {};
 
 
 var
-	fxNow, timerId,
+	fxNow, inProgress,
 	rfxtypes = /^(?:toggle|show|hide)$/,
 	rrun = /queueHooks$/;
 
-function raf() {
-	if ( timerId ) {
-		window.requestAnimationFrame( raf );
+function schedule() {
+	if ( inProgress ) {
+		if ( document.hidden === false && window.requestAnimationFrame ) {
+			window.requestAnimationFrame( schedule );
+		} else {
+			window.setTimeout( schedule, jQuery.fx.interval );
+		}
+
 		jQuery.fx.tick();
 	}
 }
@@ -10297,7 +10359,7 @@ function propFilter( props, specialEasing ) {
 		name = jQuery.camelCase( index );
 		easing = specialEasing[ name ];
 		value = props[ index ];
-		if ( jQuery.isArray( value ) ) {
+		if ( Array.isArray( value ) ) {
 			easing = value[ 1 ];
 			value = props[ index ] = value[ 0 ];
 		}
@@ -10356,12 +10418,19 @@ function Animation( elem, properties, options ) {
 
 			deferred.notifyWith( elem, [ animation, percent, remaining ] );
 
+			// If there's more to do, yield
 			if ( percent < 1 && length ) {
 				return remaining;
-			} else {
-				deferred.resolveWith( elem, [ animation ] );
-				return false;
 			}
+
+			// If this was an empty animation, synthesize a final progress notification
+			if ( !length ) {
+				deferred.notifyWith( elem, [ animation, 1, 0 ] );
+			}
+
+			// Resolve the animation and report its conclusion
+			deferred.resolveWith( elem, [ animation ] );
+			return false;
 		},
 		animation = deferred.promise( {
 			elem: elem,
@@ -10426,6 +10495,13 @@ function Animation( elem, properties, options ) {
 		animation.opts.start.call( elem, animation );
 	}
 
+	// Attach callbacks from options
+	animation
+		.progress( animation.opts.progress )
+		.done( animation.opts.done, animation.opts.complete )
+		.fail( animation.opts.fail )
+		.always( animation.opts.always );
+
 	jQuery.fx.timer(
 		jQuery.extend( tick, {
 			elem: elem,
@@ -10434,11 +10510,7 @@ function Animation( elem, properties, options ) {
 		} )
 	);
 
-	// attach callbacks from options
-	return animation.progress( animation.opts.progress )
-		.done( animation.opts.done, animation.opts.complete )
-		.fail( animation.opts.fail )
-		.always( animation.opts.always );
+	return animation;
 }
 
 jQuery.Animation = jQuery.extend( Animation, {
@@ -10489,8 +10561,8 @@ jQuery.speed = function( speed, easing, fn ) {
 		easing: fn && easing || easing && !jQuery.isFunction( easing ) && easing
 	};
 
-	// Go to the end state if fx are off or if document is hidden
-	if ( jQuery.fx.off || document.hidden ) {
+	// Go to the end state if fx are off
+	if ( jQuery.fx.off ) {
 		opt.duration = 0;
 
 	} else {
@@ -10682,7 +10754,7 @@ jQuery.fx.tick = function() {
 	for ( ; i < timers.length; i++ ) {
 		timer = timers[ i ];
 
-		// Checks the timer has not already been removed
+		// Run the timer and safely remove it when done (allowing for external removal)
 		if ( !timer() && timers[ i ] === timer ) {
 			timers.splice( i--, 1 );
 		}
@@ -10696,30 +10768,21 @@ jQuery.fx.tick = function() {
 
 jQuery.fx.timer = function( timer ) {
 	jQuery.timers.push( timer );
-	if ( timer() ) {
-		jQuery.fx.start();
-	} else {
-		jQuery.timers.pop();
-	}
+	jQuery.fx.start();
 };
 
 jQuery.fx.interval = 13;
 jQuery.fx.start = function() {
-	if ( !timerId ) {
-		timerId = window.requestAnimationFrame ?
-			window.requestAnimationFrame( raf ) :
-			window.setInterval( jQuery.fx.tick, jQuery.fx.interval );
+	if ( inProgress ) {
+		return;
 	}
+
+	inProgress = true;
+	schedule();
 };
 
 jQuery.fx.stop = function() {
-	if ( window.cancelAnimationFrame ) {
-		window.cancelAnimationFrame( timerId );
-	} else {
-		window.clearInterval( timerId );
-	}
-
-	timerId = null;
+	inProgress = null;
 };
 
 jQuery.fx.speeds = {
@@ -10836,7 +10899,7 @@ jQuery.extend( {
 		type: {
 			set: function( elem, value ) {
 				if ( !support.radioValue && value === "radio" &&
-					jQuery.nodeName( elem, "input" ) ) {
+					nodeName( elem, "input" ) ) {
 					var val = elem.value;
 					elem.setAttribute( "type", value );
 					if ( val ) {
@@ -11267,7 +11330,7 @@ jQuery.fn.extend( {
 			} else if ( typeof val === "number" ) {
 				val += "";
 
-			} else if ( jQuery.isArray( val ) ) {
+			} else if ( Array.isArray( val ) ) {
 				val = jQuery.map( val, function( value ) {
 					return value == null ? "" : value + "";
 				} );
@@ -11326,7 +11389,7 @@ jQuery.extend( {
 							// Don't return options that are disabled or in a disabled optgroup
 							!option.disabled &&
 							( !option.parentNode.disabled ||
-								!jQuery.nodeName( option.parentNode, "optgroup" ) ) ) {
+								!nodeName( option.parentNode, "optgroup" ) ) ) {
 
 						// Get the specific value for the option
 						value = jQuery( option ).val();
@@ -11378,7 +11441,7 @@ jQuery.extend( {
 jQuery.each( [ "radio", "checkbox" ], function() {
 	jQuery.valHooks[ this ] = {
 		set: function( elem, value ) {
-			if ( jQuery.isArray( value ) ) {
+			if ( Array.isArray( value ) ) {
 				return ( elem.checked = jQuery.inArray( jQuery( elem ).val(), value ) > -1 );
 			}
 		}
@@ -11673,7 +11736,7 @@ var
 function buildParams( prefix, obj, traditional, add ) {
 	var name;
 
-	if ( jQuery.isArray( obj ) ) {
+	if ( Array.isArray( obj ) ) {
 
 		// Serialize array item.
 		jQuery.each( obj, function( i, v ) {
@@ -11725,7 +11788,7 @@ jQuery.param = function( a, traditional ) {
 		};
 
 	// If an array was passed in, assume that it is an array of form elements.
-	if ( jQuery.isArray( a ) || ( a.jquery && !jQuery.isPlainObject( a ) ) ) {
+	if ( Array.isArray( a ) || ( a.jquery && !jQuery.isPlainObject( a ) ) ) {
 
 		// Serialize the form elements
 		jQuery.each( a, function() {
@@ -11771,7 +11834,7 @@ jQuery.fn.extend( {
 				return null;
 			}
 
-			if ( jQuery.isArray( val ) ) {
+			if ( Array.isArray( val ) ) {
 				return jQuery.map( val, function( val ) {
 					return { name: elem.name, value: val.replace( rCRLF, "\r\n" ) };
 				} );
@@ -13196,13 +13259,6 @@ jQuery.expr.pseudos.animated = function( elem ) {
 
 
 
-/**
- * Gets a window from an element
- */
-function getWindow( elem ) {
-	return jQuery.isWindow( elem ) ? elem : elem.nodeType === 9 && elem.defaultView;
-}
-
 jQuery.offset = {
 	setOffset: function( elem, options, i ) {
 		var curPosition, curLeft, curCSSTop, curTop, curOffset, curCSSLeft, calculatePosition,
@@ -13267,13 +13323,14 @@ jQuery.fn.extend( {
 				} );
 		}
 
-		var docElem, win, rect, doc,
+		var doc, docElem, rect, win,
 			elem = this[ 0 ];
 
 		if ( !elem ) {
 			return;
 		}
 
+		// Return zeros for disconnected and hidden (display: none) elements (gh-2310)
 		// Support: IE <=11 only
 		// Running getBoundingClientRect on a
 		// disconnected node in IE throws an error
@@ -13283,20 +13340,14 @@ jQuery.fn.extend( {
 
 		rect = elem.getBoundingClientRect();
 
-		// Make sure element is not hidden (display: none)
-		if ( rect.width || rect.height ) {
-			doc = elem.ownerDocument;
-			win = getWindow( doc );
-			docElem = doc.documentElement;
+		doc = elem.ownerDocument;
+		docElem = doc.documentElement;
+		win = doc.defaultView;
 
-			return {
-				top: rect.top + win.pageYOffset - docElem.clientTop,
-				left: rect.left + win.pageXOffset - docElem.clientLeft
-			};
-		}
-
-		// Return zeros for disconnected and hidden elements (gh-2310)
-		return rect;
+		return {
+			top: rect.top + win.pageYOffset - docElem.clientTop,
+			left: rect.left + win.pageXOffset - docElem.clientLeft
+		};
 	},
 
 	position: function() {
@@ -13322,7 +13373,7 @@ jQuery.fn.extend( {
 
 			// Get correct offsets
 			offset = this.offset();
-			if ( !jQuery.nodeName( offsetParent[ 0 ], "html" ) ) {
+			if ( !nodeName( offsetParent[ 0 ], "html" ) ) {
 				parentOffset = offsetParent.offset();
 			}
 
@@ -13369,7 +13420,14 @@ jQuery.each( { scrollLeft: "pageXOffset", scrollTop: "pageYOffset" }, function( 
 
 	jQuery.fn[ method ] = function( val ) {
 		return access( this, function( elem, method, val ) {
-			var win = getWindow( elem );
+
+			// Coalesce documents and windows
+			var win;
+			if ( jQuery.isWindow( elem ) ) {
+				win = elem;
+			} else if ( elem.nodeType === 9 ) {
+				win = elem.defaultView;
+			}
 
 			if ( val === undefined ) {
 				return win ? win[ prop ] : elem[ method ];
@@ -13478,7 +13536,16 @@ jQuery.fn.extend( {
 	}
 } );
 
+jQuery.holdReady = function( hold ) {
+	if ( hold ) {
+		jQuery.readyWait++;
+	} else {
+		jQuery.ready( true );
+	}
+};
+jQuery.isArray = Array.isArray;
 jQuery.parseJSON = JSON.parse;
+jQuery.nodeName = nodeName;
 
 
 
@@ -13531,7 +13598,6 @@ jQuery.noConflict = function( deep ) {
 if ( !noGlobal ) {
 	window.jQuery = window.$ = jQuery;
 }
-
 
 
 

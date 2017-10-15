@@ -1,10 +1,11 @@
 import { inject, TaskQueue } from 'aurelia-framework';
 import 'bootstrap';
 import WOW from 'wow';
+import { DataManager } from 'data-manager';
 
-@inject(TaskQueue)
+@inject(TaskQueue, DataManager)
 export class App {
-    constructor(taskQueue) { // so impress
+    constructor(taskQueue, dataManager) { // so impress
         this.wow = new WOW( // wow
             {
                 boxClass:     'wow',      // animated element css class (default is wow)
@@ -19,7 +20,8 @@ export class App {
                 scrollContainer: null // optional scroll container selector, otherwise use window
             }
         );
-        this.taskQueue = taskQueue;
+        this.taskQueue   = taskQueue;
+        this.dataManager = dataManager;
     }
 
     created(v1, v2){ }
@@ -29,6 +31,8 @@ export class App {
         this.taskQueue.queueMicroTask(() => {
             this.wow.init(); // much init
         });
+
+        //this.data = this.dataManager.get('https://jsonplaceholder.typicode.com/posts');// dummy data
     }
 
     configureRouter(config, router) {

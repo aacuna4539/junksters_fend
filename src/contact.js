@@ -19,11 +19,9 @@ export class Contact {
             .ensure('email').email().required()
             .ensure('message').required()
             .on(this.message);
-
     }
 
     send() {
-
         this.controller.validate()
             .then(result => {
                 if (result.valid) {
