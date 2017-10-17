@@ -1,7 +1,7 @@
 /**
  * Created by rigel on 10/11/17.
  */
-import { http } from 'resources/http';
+import { http }   from 'resources/http';
 import { inject } from 'aurelia-framework';
 
 @inject(http)
@@ -15,7 +15,7 @@ export class DataManager {
             return this.data;
         } else {
             return this.http.fetch(url)
-                .then( data => {
+                .then(data => {
                     this.data = data;
                     return data;
                 });

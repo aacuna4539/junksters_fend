@@ -1,9 +1,9 @@
 /**
  * Created by rigel on 3/10/17.
  */
-import {DataManager}  from 'data-manager';
-import {inject}       from 'aurelia-framework';
-import {Paginate}     from 'paginate';
+import { DataManager }  from 'data-manager';
+import { inject }       from 'aurelia-framework';
+import { Paginate }     from 'paginate';
 
 @inject(DataManager, Paginate)
 export class Blog {
@@ -14,43 +14,45 @@ export class Blog {
             "src/img/slide-1.jpg"
         ];
 
-        this.posts = [];
         this.displayedPosts = [];
-        this.dataManager = dataManager;
-        this.paginate = paginate;
-        this.pageNum = 0;
+        this.dataManager    = dataManager;
+        this.paginate       = paginate;
+        this.pageNum        = 0;
+        this.posts          = [];
+
+        this.btnOpts = {
+            value1: 'none',
+            value2: 'default',
+            value3: 'lightgrey',
+            prop1: 'pointerEvents',
+            prop2: 'cursor',
+            prop3: 'background-color'
+        }
     }
 
-    created(owningView, myView) {
-    }
+    created(owningView, myView) { }
 
     attached() {
-        if (this.posts.length > 0 || this.dataManager.data) {
-            this.posts = this.dataManager.data.sort((a, b) => b.date - a.date);
-            this.displayedPosts = this.posts.slice(0, 4);
-            return;
-        }
+        if(this.dataManager.data.bodyUsed === false)  {
+            this.dataManager.data.json().then( x => {
+                    x.map(x => {
 
-        this.dataManager.get('https://jsonplaceholder.typicode.com/posts')// dummy data
-            .then((response => {
-                if (response.status !== 200) {
-                    console.log(`Something went wrong. Status: ${response.status}`);
-                    return
-                }
-                response.json().then(x => {
-                    this.dataManager.data = x;
-
-                    // add dates and urls to our dummy data
-                    this.dataManager.data.map(x => {
+                        // add dates and urls to our dummy data
                         x.date = this.randomDate(new Date(2017, 0, 1), new Date());
                         x.url = this.urls[Math.floor(Math.random() * (2 + 1))];
 
                     });
-                    this.posts = this.dataManager.data.sort((a, b) => b.date - a.date);
-                    this.displayedPosts = this.posts.slice(0, 4);
-                    this.displayedPosts.forEach(x => console.log( x.date))
-                });
-            }));
+                this.dataManager.data = x;
+                this.posts = x.sort((a, b) => b.date - a.date);
+
+                this.displayedPosts = this.posts.slice(0, 4);
+                console.log('posts: ', this.displayedPosts)
+            });
+        } else {
+
+            this.posts = this.dataManager.data;
+            this.displayedPosts = this.posts.slice(0, 4);
+        }
     }
 
     // helper for dummy data
@@ -60,21 +62,30 @@ export class Blog {
             * (end.getTime() - start.getTime()));
     }
 
-    modifyAttribute(opts, action) {
-        if (opts.el.hasAttribute(action)) return;
-        return opts.el[action](opts.attribute, opts.value);
+    modifyAttribute(el, opts) {
+        el.style[ opts.prop1 ] = opts.value1;
+        el.style[ opts.prop2 ] = opts.value2;
+        el.style[ opts.prop3 ] = opts.value3;
     }
 
     page(e, action) {
-
-        //todo: check for first or last el in arr, disable btn accordingly
-
         let tmp = this.paginate.page({
             array: this.posts,
-            pageNum: action === 'decrement' ? this.pageNum - 1 : this.pageNum + 1
+            pageNum:
+                action === 'decrement'
+                ? this.pageNum - 1
+                : this.pageNum + 1
         });
 
-        this.pageNum = tmp.num;
+        this.pageNum        = tmp.num;
         this.displayedPosts = tmp.arr;
+
+        if(!this.pager) this.pager = e.target.cloneNode(true);
+
+        if (this.displayedPosts.includes(this.posts[0])) {
+            this.modifyAttribute(e.target, this.btnOpts)
+        } else if (this.displayedPosts.includes(this.posts[this.posts.length - 1])) {
+            this.modifyAttribute(e.target, this.btnOpts);
+        }
     }
 }
