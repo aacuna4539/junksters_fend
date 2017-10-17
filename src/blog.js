@@ -43,14 +43,12 @@ export class Blog {
 
                     });
                 this.dataManager.data = x;
-                this.posts = x.sort((a, b) => b.date - a.date);
 
-                this.displayedPosts = this.posts.slice(0, 4);
-                console.log('posts: ', this.displayedPosts)
+                this.posts            = x.sort((a, b) => b.date - a.date);
+                this.displayedPosts   = this.posts.slice(0, 4);
             });
         } else {
-
-            this.posts = this.dataManager.data;
+            this.posts          = this.dataManager.data;
             this.displayedPosts = this.posts.slice(0, 4);
         }
     }
