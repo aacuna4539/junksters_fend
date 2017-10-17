@@ -53,10 +53,11 @@ export class App {
         config.mapUnknownRoutes('home');
 
         config.map([
-            {route: ['home', ''], name: 'home', moduleId: 'home', title: 'Home', nav: true},
-            {route: 'about', name: 'title', moduleId: 'about', title: 'About', nav: true},
-            {route: 'blog', name: 'blog', moduleId: 'blog', title: 'Blog', nav: true},
-            {route: 'contact', name: 'contact', moduleId: 'contact', title: 'Contact', nav: true}
+            {route: ['home', ''], name: 'home',      moduleId: 'home',      title: 'Home',    nav: true},
+            {route: 'about',      name: 'title',     moduleId: 'about',     title: 'About',   nav: true},
+            {route: 'blog',       name: 'blog',      moduleId: 'blog',      title: 'Blog',    nav: true},
+            {route: 'blog/:id',   name: 'blog-post', moduleId: 'blog-post', title: 'Post'              },
+            {route: 'contact',    name: 'contact',   moduleId: 'contact',   title: 'Contact', nav: true}
         ]);
 
         this.router = router;
