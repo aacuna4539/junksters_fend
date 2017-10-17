@@ -33,7 +33,7 @@ export class Blog {
     created(owningView, myView) { }
 
     attached() {
-        if(this.dataManager.data.bodyUsed === false)  {
+        if(this.dataManager.data && this.dataManager.data.bodyUsed === false)  {
             this.dataManager.data.json().then( x => {
                     x.map(x => {
 
@@ -60,10 +60,10 @@ export class Blog {
             * (end.getTime() - start.getTime()));
     }
 
-    modifyAttribute(el, opts) {
-        el.style[ opts.prop1 ] = opts.value1;
-        el.style[ opts.prop2 ] = opts.value2;
-        el.style[ opts.prop3 ] = opts.value3;
+    modifyAttribute(el, opts, attr) {
+        el[ attr ][ opts.prop1 ] = opts.value1;
+        el[ attr ][ opts.prop2 ] = opts.value2;
+        el[ attr ][ opts.prop3 ] = opts.value3;
     }
 
     page(e, action) {
