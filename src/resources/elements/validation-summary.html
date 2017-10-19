@@ -1,5 +1,5 @@
 <template bindable="errors">
-    <div class="alert alert-danger wow fadeInUp" tabindex="-1"
+    <div class="alert alert-danger" style="text-align: left;" tabindex="-1"
          show.bind="errors.length"
          focus.one-way="errors.length > 0">
         <ul class="list-unstyled">
@@ -7,8 +7,8 @@
                 <span class="text-danger" style="color:white;">
                     <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
                     <span class="sr-only">Error:</span>
-                    ${errorInfo.error.message}
-                    ${JSON.stringify(errorInfo.error)}
+                    ${errorInfo}
+                    ${JSON.stringify(errorInfo)}
                 </span>
             </li>
         </ul>

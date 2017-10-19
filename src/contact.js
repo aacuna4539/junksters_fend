@@ -2,15 +2,15 @@
  * Created by rigel on 2/22/17.
  */
 
-import { ValidationControllerFactory, ValidationRules }           from 'aurelia-validation';
-import { inject }                                                 from 'aurelia-framework';
+import {ValidationController, ValidationRules}                  from 'aurelia-validation';
+import {inject, NewInstance}                                    from 'aurelia-framework';
 
-@inject(ValidationControllerFactory)
+@inject(NewInstance.of(ValidationController))
 export class Contact {
 
-    constructor(controllerFactory) {
+    constructor(validationController) {
         this.message = {name: '', email: '', message: '', phone: ''};
-        this.controller = controllerFactory.createForCurrentScope();
+        this.validationController = validationController;
     }
 
     attached() {
@@ -22,14 +22,18 @@ export class Contact {
     }
 
     send() {
-        this.controller.validate()
-            .then(result => {
-                if (result.valid) {
-                    /*this.api.saveTask(this.task);*/
-                    console.log("sending");
-                } else {
-                    // do stuff
-                }
-        });
+        async function validate(controller) {
+            let result = await controller.validate();
+            console.log(result);
+
+            if (result.valid) {
+                console.log('sending')
+            } else {
+                console.log('errors: ', controller.errors)
+            }
+        }
+        validate(this.validationController);
     }
+
+    cancel() { }
 }

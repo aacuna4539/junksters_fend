@@ -4,10 +4,11 @@
 import { DataManager }  from 'data-manager';
 import { inject }       from 'aurelia-framework';
 import { Paginate }     from 'paginate';
+import { Utils } from 'resources/utils'
 
-@inject(DataManager, Paginate)
+@inject(DataManager, Paginate, Utils)
 export class Blog {
-    constructor(dataManager, paginate) {
+    constructor(dataManager, paginate, utils) {
         this.urls = [
             "src/img/slide-3.jpg",
             "src/img/slide-2.jpg",
@@ -17,33 +18,30 @@ export class Blog {
         this.displayedPosts = [];
         this.dataManager    = dataManager;
         this.paginate       = paginate;
+        this.utils          = utils;
         this.pageNum        = 0;
         this.posts          = [];
 
         this.btnOpts = {
-            value1: 'none',
-            value2: 'default',
-            value3: 'lightgrey',
-            prop1: 'pointerEvents',
-            prop2: 'cursor',
-            prop3: 'background-color'
-        }
+            backgroundColor: 'lightgrey',
+            pointerEvents  : 'none',
+            cursor         : 'default',
+        };
     }
 
     created(owningView, myView) { }
 
-    attached() {
+    attached() {  // bug on refresh
         if(this.dataManager.data && this.dataManager.data.bodyUsed === false)  {
             this.dataManager.data.json().then( x => {
                     x.map(x => {
 
                         // add dates and urls to our dummy data
                         x.date = this.randomDate(new Date(2017, 0, 1), new Date());
-                        x.url = this.urls[Math.floor(Math.random() * (2 + 1))];
+                        x.url  = this.urls[Math.floor(Math.random() * (2 + 1))];
 
                     });
                 this.dataManager.data = x;
-
                 this.posts            = x.sort((a, b) => b.date - a.date);
                 this.displayedPosts   = this.posts.slice(0, 4);
             });
@@ -61,14 +59,14 @@ export class Blog {
     }
 
     modifyAttribute(el, opts, attr) {
-        el[ attr ][ opts.prop1 ] = opts.value1;
-        el[ attr ][ opts.prop2 ] = opts.value2;
-        el[ attr ][ opts.prop3 ] = opts.value3;
+        this.utils.mapFromObject(opts)
+            .forEach((val, key) => el[ attr ][ key ] = val);
+        return el;
     }
 
     page(e, action) {
         let tmp = this.paginate.page({
-            array: this.posts,
+            array  : this.posts,
             pageNum:
                 action === 'decrement'
                 ? this.pageNum - 1
@@ -81,9 +79,9 @@ export class Blog {
         if(!this.pager) this.pager = e.target.cloneNode(true);
 
         if (this.displayedPosts.includes(this.posts[0])) {
-            this.modifyAttribute(e.target, this.btnOpts)
+            this.modifyAttribute(e.target, this.btnOpts, 'style')
         } else if (this.displayedPosts.includes(this.posts[this.posts.length - 1])) {
-            this.modifyAttribute(e.target, this.btnOpts);
+            this.modifyAttribute(e.target, this.btnOpts, 'style');
         }
     }
 }

@@ -2,6 +2,7 @@ import { inject, TaskQueue } from 'aurelia-framework';
 import { DataManager }       from 'data-manager';
 import WOW                   from 'wow';
 import 'bootstrap';
+import { Utils } from 'resources/utils';
 
 @inject(TaskQueue, DataManager)
 export class App {
@@ -9,6 +10,7 @@ export class App {
         this.taskQueue = taskQueue;
         this.dataManager = dataManager;
         this.url = 'https://jsonplaceholder.typicode.com/posts';
+
 
         this.wow = new WOW( // wow
             {
@@ -56,7 +58,7 @@ export class App {
             {route: ['home', ''], name: 'home',      moduleId: 'home',      title: 'Home',    nav: true},
             {route: 'about',      name: 'title',     moduleId: 'about',     title: 'About',   nav: true},
             {route: 'blog',       name: 'blog',      moduleId: 'blog',      title: 'Blog',    nav: true},
-            {route: 'blog/:id',   name: 'blog-post', moduleId: 'blog-post', title: 'Post'              },
+            {route: 'post/:id',   name: 'post', moduleId: 'post', title: 'Post'              },
             {route: 'contact',    name: 'contact',   moduleId: 'contact',   title: 'Contact', nav: true}
         ]);
 
