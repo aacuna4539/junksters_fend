@@ -12,7 +12,6 @@ export class BootstrapFormValidationRenderer {
 
     render(error, target) {
         if (!target || !(this.boundaryElement === target || this.boundaryElement.contains(target))) {
-            debugger;
             return;
         }
 

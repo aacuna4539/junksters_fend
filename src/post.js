@@ -1,9 +1,9 @@
 /**
  * Created by rigel on 10/18/17.
  */
-import { DataManager } from 'data-manager';
-import { ValidationController, ValidationRules }           from 'aurelia-validation';
-import { inject, NewInstance}                                                 from 'aurelia-framework';
+import { DataManager }                           from 'data-manager';
+import { ValidationController, ValidationRules } from 'aurelia-validation';
+import { inject, NewInstance}                    from 'aurelia-framework';
 
 @inject(DataManager, NewInstance.of(ValidationController))
 export class Post {
